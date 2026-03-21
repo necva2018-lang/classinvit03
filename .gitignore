@@ -23,6 +23,15 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+Desktop.ini
+
+# IDE（若需共用設定可改為追蹤 .vscode/extensions.json）
+.idea/
+
+# Prisma（本機 SQLite 實驗用，此專案預設為 PostgreSQL）
+*.db
+*.db-journal
 
 # debug
 npm-debug.log*
@@ -32,6 +41,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NECVA 線上課程平台（classinvit03）
 
-## Getting Started
+Next.js App Router 前台 + Prisma（PostgreSQL）+ `/admin` 課程管理後台。資料庫目標部署於 **Zeabur**。
 
-First, run the development server:
+## 環境需求
+
+- **Node.js** ≥ 20.9（見 `package.json` 的 `engines`）
+- **PostgreSQL**（本機或 Zeabur 等雲端）
+
+## 快速開始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <你的-repo-url>.git
+cd classinvit03
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. 複製環境變數範本並編輯（**勿將含密碼的檔案提交**）：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   cp .env.example .env
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   在 `.env` 填入 Zeabur（或本機）的 **`DATABASE_URL`**。
 
-## Learn More
+2. 套用資料庫結構與（選用）種子資料：
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm run check:db-url
+   npx prisma migrate deploy
+   npm run db:seed
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. 啟動開發伺服器：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+   瀏覽 [http://localhost:3000](http://localhost:3000)；後台：[http://localhost:3000/admin/courses](http://localhost:3000/admin/courses)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## npm 指令
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 指令 | 說明 |
+|------|------|
+| `npm run dev` | 開發模式 |
+| `npm run build` / `npm run start` | 正式建置與執行 |
+| `npm run check:db-url` | 檢查 `DATABASE_URL` 格式（不顯示密碼） |
+| `npm run db:generate` | 產生 Prisma Client |
+| `npm run db:migrate` | 本機開發遷移（`migrate dev`） |
+| `npm run db:deploy` | 上線／共用 DB 套用遷移（`migrate deploy`） |
+| `npm run db:seed` | 種子資料 |
+| `npm run db:studio` | Prisma Studio |
+
+## 專案結構摘要
+
+- `app/(site)/` — 前台（首頁、課程列表、搜尋等），含 Navbar / Footer
+- `app/(admin)/admin/` — 後台（側邊欄、課程 CRUD）
+- `app/api/courses/` — 課程列表 JSON（供前台 Client 元件）
+- `prisma/` — `schema.prisma`、遷移、`seed.ts`
+- `components/ui/` — shadcn 相容基礎元件
+- `DEVELOPMENT_LOG.md` — 開發過程與架構紀錄
+
+## 部署（Zeabur 等）
+
+- 在託管平台設定 **`DATABASE_URL`**
+- 建置前需執行 `prisma generate`（本專案 `postinstall` 已包含）
+- 對**同一資料庫**在可信環境執行 `npx prisma migrate deploy` 後再發布 Web
+
+## 安全提醒
+
+- **`.env`、`.env.local` 已列於 `.gitignore`，不應提交。**
+- 若曾誤將內含密碼的環境檔推上遠端，請**立即更換**資料庫密碼並從歷史清除敏感檔（如 `git filter-repo`）。
+- 後台 `/admin` 目前**無登入驗證**，正式上線前請補強權限。
+
+## 授權
+
+若未另附 `LICENSE` 檔，預設為專有或未宣告；請依團隊需求自行新增授權條款。
