@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { CourseForm } from "@/components/admin/course-form";
@@ -36,25 +36,27 @@ export default async function EditCoursePage({ params }: PageProps) {
     notFound();
   }
 
-  if (categories.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">尚無分類，無法編輯。</p>
-    );
-  }
-
   const boundUpdate = updateCourse.bind(null, course.id);
   const categoryOptions = toCategoryFormOptions(categories);
   const courseInitial = toCourseFormInitialValues(course);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/admin/courses" className="gap-2">
-            <ArrowLeft className="size-4" aria-hidden />
-            返回列表
-          </Link>
-        </Button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/admin/courses" className="gap-2">
+              <ArrowLeft className="size-4" aria-hidden />
+              返回列表
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/admin/courses/${id}/edit`} className="gap-2">
+              <Layers className="size-4" aria-hidden />
+              課程與單元（大綱）
+            </Link>
+          </Button>
+        </div>
         <h1 className="text-2xl font-bold text-foreground">編輯課程</h1>
       </div>
       <CourseForm

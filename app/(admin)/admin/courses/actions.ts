@@ -1,107 +1,84 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-
-import { slugifyTitle } from "@/lib/slug";
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-function parseIntSafe(v: FormDataEntryValue | null, fallback = 0) {
-  if (v == null || v === "") return fallback;
-  const n = Number.parseInt(String(v), 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function parseDecimal(v: FormDataEntryValue | null) {
-  if (v == null || v === "") return new Prisma.Decimal("0");
+function parseFloatOrNull(v: FormDataEntryValue | null): number | null {
+  if (v == null || v === "") return null;
   const n = Number.parseFloat(String(v));
-  if (!Number.isFinite(n) || n < 0) return new Prisma.Decimal("0");
-  if (n > 5) return new Prisma.Decimal("5");
-  return new Prisma.Decimal(n.toFixed(1));
+  return Number.isFinite(n) ? n : null;
 }
 
 export async function createCourse(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const instructorName = String(formData.get("instructorName") ?? "").trim();
-  const coverImageUrl = String(formData.get("coverImageUrl") ?? "").trim();
-  if (!title || !categoryId || !instructorName || !coverImageUrl) {
-    throw new Error("請填寫標題、分類、講師與封面圖 URL");
+  if (!title) {
+    throw new Error("請填寫課程標題");
   }
 
-  const description =
-    String(formData.get("description") ?? "").trim() || null;
-  const price = parseIntSafe(formData.get("price"), 0);
-  const priceOriginalRaw = formData.get("priceOriginal");
-  const priceOriginal =
-    priceOriginalRaw == null || priceOriginalRaw === ""
-      ? null
-      : parseIntSafe(priceOriginalRaw, 0);
-  const reviewCount = parseIntSafe(formData.get("reviewCount"), 0);
-  const slugInput = String(formData.get("slug") ?? "").trim();
-  const base = slugInput || slugifyTitle(title);
-  const slug = `${base}-${randomUUID().slice(0, 8)}`;
+  const subtitle = String(formData.get("subtitle") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const cat = String(formData.get("categoryId") ?? "").trim();
+  const categoryId = cat === "" ? null : cat;
+  const price = parseFloatOrNull(formData.get("price"));
+  const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
+  const isPublished = formData.get("isPublished") === "on";
 
-  await prisma.course.create({
+  const created = await prisma.course.create({
     data: {
       title,
+      subtitle,
       description,
+      imageUrl,
       price,
-      priceOriginal,
-      coverImageUrl,
-      instructorName,
-      rating: parseDecimal(formData.get("rating")),
-      reviewCount,
-      slug,
-      filterTags: [],
+      discountedPrice,
+      isPublished,
       categoryId,
     },
   });
 
   revalidatePath("/admin/courses");
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath(`/courses/${created.id}`);
   redirect("/admin/courses");
 }
 
 export async function updateCourse(courseId: string, formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const instructorName = String(formData.get("instructorName") ?? "").trim();
-  const coverImageUrl = String(formData.get("coverImageUrl") ?? "").trim();
-  if (!title || !categoryId || !instructorName || !coverImageUrl) {
-    throw new Error("請填寫標題、分類、講師與封面圖 URL");
+  if (!title) {
+    throw new Error("請填寫課程標題");
   }
 
-  const description =
-    String(formData.get("description") ?? "").trim() || null;
-  const price = parseIntSafe(formData.get("price"), 0);
-  const priceOriginalRaw = formData.get("priceOriginal");
-  const priceOriginal =
-    priceOriginalRaw == null || priceOriginalRaw === ""
-      ? null
-      : parseIntSafe(priceOriginalRaw, 0);
-  const reviewCount = parseIntSafe(formData.get("reviewCount"), 0);
-  const slugInput = String(formData.get("slug") ?? "").trim();
-  const slug = slugInput || slugifyTitle(title);
+  const subtitle = String(formData.get("subtitle") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const cat = String(formData.get("categoryId") ?? "").trim();
+  const categoryId = cat === "" ? null : cat;
+  const price = parseFloatOrNull(formData.get("price"));
+  const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
+  const isPublished = formData.get("isPublished") === "on";
 
   await prisma.course.update({
     where: { id: courseId },
     data: {
       title,
+      subtitle,
       description,
+      imageUrl,
       price,
-      priceOriginal,
-      coverImageUrl,
-      instructorName,
-      rating: parseDecimal(formData.get("rating")),
-      reviewCount,
-      slug,
+      discountedPrice,
+      isPublished,
       categoryId,
     },
   });
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/admin/courses/${courseId}/edit`);
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath(`/courses/${courseId}`);
   redirect(`/admin/courses/${courseId}`);
 }

@@ -10,6 +10,21 @@ export const COURSE_FILTER_OPTIONS = [
 
 export type CourseFilterTagId = (typeof COURSE_FILTER_OPTIONS)[number]["id"];
 
+const TAG_IDS = new Set<string>(COURSE_FILTER_OPTIONS.map((o) => o.id));
+
+/** 與 Category.name 一致時，回傳對應篩選 id（供 /courses?tag= 使用） */
+export function filterTagIdForCategoryLabel(
+  label: string,
+): CourseFilterTagId | null {
+  const t = label.trim();
+  const hit = COURSE_FILTER_OPTIONS.find((o) => o.label === t);
+  return hit ? hit.id : null;
+}
+
+export function isCourseFilterTagId(s: string): s is CourseFilterTagId {
+  return TAG_IDS.has(s);
+}
+
 export const PRICE_FILTER_OPTIONS = [
   { id: "all", label: "全部價格" },
   { id: "under2000", label: "NT$2,000 以下" },

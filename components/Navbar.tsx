@@ -3,12 +3,17 @@
 import { CourseMegaMenu } from "@/components/navbar/CourseMegaMenu";
 import { MobileNavDrawer } from "@/components/navbar/MobileNavDrawer";
 import { NavSearchForm } from "@/components/navbar/NavSearchForm";
+import type { NavCategoryLink } from "@/lib/category-nav-links";
 import { ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
-export function Navbar() {
+type Props = {
+  categories: NavCategoryLink[];
+};
+
+export function Navbar({ categories }: Props) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("q") ?? "";
 
@@ -201,13 +206,18 @@ export function Navbar() {
         </div>
 
         {megaOpen && (
-          <CourseMegaMenu panelId={panelId} onNavigate={closeMega} />
+          <CourseMegaMenu
+            panelId={panelId}
+            categories={categories}
+            onNavigate={closeMega}
+          />
         )}
       </div>
 
       {mobileOpen && (
         <MobileNavDrawer
           drawerRef={drawerRef}
+          categories={categories}
           searchQuery={searchQuery}
           mobileCourseOpen={mobileCourseOpen}
           setMobileCourseOpen={setMobileCourseOpen}

@@ -1,6 +1,7 @@
 import { CourseListClient } from "@/components/courses/course-list-client";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "課程列表",
@@ -30,7 +31,15 @@ export default function CoursesPage() {
       </div>
 
       <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <CourseListClient />
+        <Suspense
+          fallback={
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-white py-16 text-zinc-500">
+              <p className="text-sm">載入課程篩選…</p>
+            </div>
+          }
+        >
+          <CourseListClient />
+        </Suspense>
       </div>
     </div>
   );

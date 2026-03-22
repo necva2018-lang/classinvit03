@@ -23,15 +23,15 @@ export type AdminCourseTableRow = {
   id: string;
   title: string;
   categoryName: string;
-  price: number;
-  priceOriginal: number | null;
-  rating: string;
-  instructorName: string;
+  price: number | null;
+  discountedPrice: number | null;
+  isPublished: boolean;
   updatedAt: string;
 };
 
-function formatTwd(n: number) {
-  return `NT$${n.toLocaleString("zh-TW")}`;
+function formatMoney(n: number | null | undefined) {
+  if (n == null || Number.isNaN(n)) return "—";
+  return `NT$${Math.round(n).toLocaleString("zh-TW")}`;
 }
 
 export function CoursesDataTable({ data }: { data: AdminCourseTableRow[] }) {
@@ -51,29 +51,40 @@ export function CoursesDataTable({ data }: { data: AdminCourseTableRow[] }) {
         header: "分類",
       },
       {
-        accessorKey: "instructorName",
-        header: "講師",
-      },
-      {
-        accessorKey: "price",
-        header: "售價",
-        cell: ({ row }) => (
-          <div className="tabular-nums">
-            {formatTwd(row.original.price)}
-            {row.original.priceOriginal != null &&
-              row.original.priceOriginal > row.original.price && (
-                <span className="ml-2 text-xs text-muted-foreground line-through">
-                  {formatTwd(row.original.priceOriginal)}
+        id: "price",
+        header: "價格",
+        cell: ({ row }) => {
+          const r = row.original;
+          const sale = r.discountedPrice ?? r.price;
+          const showStrike =
+            r.discountedPrice != null &&
+            r.price != null &&
+            r.discountedPrice < r.price;
+          return (
+            <div className="tabular-nums text-sm">
+              {showStrike && (
+                <span className="mr-2 text-muted-foreground line-through">
+                  {formatMoney(r.price)}
                 </span>
               )}
-          </div>
-        ),
+              <span className="font-medium">{formatMoney(sale)}</span>
+            </div>
+          );
+        },
       },
       {
-        accessorKey: "rating",
-        header: "評分",
+        accessorKey: "isPublished",
+        header: "狀態",
         cell: ({ row }) => (
-          <span className="tabular-nums">{Number(row.original.rating).toFixed(1)}</span>
+          <span
+            className={
+              row.original.isPublished
+                ? "text-emerald-700"
+                : "text-muted-foreground"
+            }
+          >
+            {row.original.isPublished ? "已上架" : "草稿"}
+          </span>
         ),
       },
       {
@@ -135,11 +146,10 @@ export function CoursesDataTable({ data }: { data: AdminCourseTableRow[] }) {
                 colSpan={columns.length}
                 className="h-24 text-center text-muted-foreground"
               >
-                尚無課程資料。請確認已執行{" "}
+                尚無課程。請執行{" "}
                 <code className="rounded bg-muted px-1 text-xs">prisma migrate</code>{" "}
-                與{" "}
-                <code className="rounded bg-muted px-1 text-xs">db:seed</code>
-                ，或點「新增課程」建立。
+                與 <code className="rounded bg-muted px-1 text-xs">db:seed</code>
+                ，或點「新增課程」。
               </TableCell>
             </TableRow>
           )}

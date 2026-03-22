@@ -1,6 +1,6 @@
 import type { Category, Course } from "@prisma/client";
 
-/** 可從 Server Component 傳入 Client Component（無 Decimal / Date） */
+/** 可從 Server Component 傳入 Client Component（純 JSON） */
 export type CourseFormCategoryOption = {
   id: string;
   name: string;
@@ -8,15 +8,13 @@ export type CourseFormCategoryOption = {
 
 export type CourseFormInitialValues = {
   title: string;
+  subtitle: string | null;
   description: string | null;
-  price: number;
-  priceOriginal: number | null;
-  coverImageUrl: string;
-  instructorName: string;
-  rating: number;
-  reviewCount: number;
-  slug: string | null;
-  categoryId: string;
+  imageUrl: string | null;
+  price: number | null;
+  discountedPrice: number | null;
+  isPublished: boolean;
+  categoryId: string | null;
 };
 
 export function toCategoryFormOptions(
@@ -30,14 +28,12 @@ export function toCourseFormInitialValues(
 ): CourseFormInitialValues {
   return {
     title: course.title,
+    subtitle: course.subtitle,
     description: course.description,
+    imageUrl: course.imageUrl,
     price: course.price,
-    priceOriginal: course.priceOriginal,
-    coverImageUrl: course.coverImageUrl,
-    instructorName: course.instructorName,
-    rating: Number(course.rating),
-    reviewCount: course.reviewCount,
-    slug: course.slug,
+    discountedPrice: course.discountedPrice,
+    isPublished: course.isPublished,
     categoryId: course.categoryId,
   };
 }

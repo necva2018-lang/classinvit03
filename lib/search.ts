@@ -1,4 +1,4 @@
-import { navCourseCategories } from "@/lib/nav-course-categories";
+import { COURSE_FILTER_OPTIONS } from "@/lib/course-filters";
 import type { Course } from "@/lib/types/course";
 
 export type SearchHit = {
@@ -12,7 +12,7 @@ function norm(s: string) {
   return s.trim().toLowerCase();
 }
 
-/** 依關鍵字搜尋課程（來自 PostgreSQL 的列表）與靜態分類導覽 */
+/** 依關鍵字搜尋課程（PostgreSQL 列表）與篩選用分類標籤（與 Category.name 對齊） */
 export function searchContent(query: string, courses: Course[]): SearchHit[] {
   const q = norm(query);
   if (!q) return [];
@@ -32,25 +32,14 @@ export function searchContent(query: string, courses: Course[]): SearchHit[] {
     }
   }
 
-  for (const g of navCourseCategories) {
-    if (g.label.toLowerCase().includes(q)) {
+  for (const opt of COURSE_FILTER_OPTIONS) {
+    if (opt.label.toLowerCase().includes(q)) {
       hits.push({
         kind: "category",
-        title: g.label,
-        subtitle: "主分類",
-        href: g.href,
+        title: opt.label,
+        subtitle: "課程分類",
+        href: `/courses?tag=${encodeURIComponent(opt.id)}`,
       });
-    }
-    for (const ch of g.children) {
-      const blob = `${g.label} ${ch.label}`.toLowerCase();
-      if (blob.includes(q) || ch.label.toLowerCase().includes(q)) {
-        hits.push({
-          kind: "category",
-          title: ch.label,
-          subtitle: g.label,
-          href: ch.href,
-        });
-      }
     }
   }
 

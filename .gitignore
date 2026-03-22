@@ -39,7 +39,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# 機密環境變數（含 DATABASE_URL 資料庫密碼、AUTH_SECRET 等）— 絕對勿提交至 GitHub
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# 其餘自訂 .env.* 一併忽略；範本檔可提交
 .env*
 !.env.example
 
@@ -49,3 +55,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 本機上傳的輪播圖（保留目錄結構請用 .gitkeep）
+/public/uploads/banners/*
+!/public/uploads/banners/.gitkeep

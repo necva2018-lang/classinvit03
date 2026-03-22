@@ -46,14 +46,24 @@ export function CourseForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="categoryId">分類</Label>
+        <Label htmlFor="subtitle">副標題（選填）</Label>
+        <Input
+          id="subtitle"
+          name="subtitle"
+          defaultValue={course?.subtitle ?? ""}
+          placeholder="一句話說明課程"
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="categoryId">分類（選填）</Label>
         <select
           id="categoryId"
           name="categoryId"
-          required
-          defaultValue={course?.categoryId ?? categories[0]?.id ?? ""}
+          defaultValue={course?.categoryId ?? ""}
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
+          <option value="">— 未分類 —</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -63,99 +73,67 @@ export function CourseForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="description">描述</Label>
+        <Label htmlFor="description">課程介紹</Label>
         <textarea
           id="description"
           name="description"
-          rows={4}
+          rows={6}
           defaultValue={course?.description ?? ""}
-          className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          placeholder="課程簡介（選填）"
+          className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="Markdown 或純文字皆可（選填）"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="price">售價（NT$，整數）</Label>
+          <Label htmlFor="price">定價（NT$，可含小數）</Label>
           <Input
             id="price"
             name="price"
             type="number"
             min={0}
-            required
-            defaultValue={course?.price ?? 0}
+            step={1}
+            defaultValue={course?.price ?? ""}
+            placeholder="原價／牌價"
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="priceOriginal">原價（選填）</Label>
+          <Label htmlFor="discountedPrice">特價（選填）</Label>
           <Input
-            id="priceOriginal"
-            name="priceOriginal"
+            id="discountedPrice"
+            name="discountedPrice"
             type="number"
             min={0}
-            defaultValue={course?.priceOriginal ?? ""}
-            placeholder="無則留空"
+            step={1}
+            defaultValue={course?.discountedPrice ?? ""}
+            placeholder="無特價可留空"
           />
         </div>
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="coverImageUrl">封面圖 URL</Label>
+        <Label htmlFor="imageUrl">封面圖 URL（選填）</Label>
         <Input
-          id="coverImageUrl"
-          name="coverImageUrl"
+          id="imageUrl"
+          name="imageUrl"
           type="url"
-          required
-          defaultValue={course?.coverImageUrl ?? ""}
+          defaultValue={course?.imageUrl ?? ""}
           placeholder="https://…"
         />
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="instructorName">講師名稱</Label>
-        <Input
-          id="instructorName"
-          name="instructorName"
-          required
-          defaultValue={course?.instructorName ?? ""}
+      <div className="flex items-center gap-2">
+        <input
+          id="isPublished"
+          name="isPublished"
+          type="checkbox"
+          value="on"
+          defaultChecked={course?.isPublished ?? false}
+          className="size-4 rounded border-input"
         />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="rating">評分（0–5）</Label>
-          <Input
-            id="rating"
-            name="rating"
-            type="number"
-            min={0}
-            max={5}
-            step={0.1}
-            required
-            defaultValue={course ? course.rating : 4.5}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="reviewCount">評價數</Label>
-          <Input
-            id="reviewCount"
-            name="reviewCount"
-            type="number"
-            min={0}
-            required
-            defaultValue={course?.reviewCount ?? 0}
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="slug">網址 slug（選填，留空則自動產生）</Label>
-        <Input
-          id="slug"
-          name="slug"
-          defaultValue={course?.slug ?? ""}
-          placeholder="my-course-slug"
-        />
+        <Label htmlFor="isPublished" className="font-normal">
+          已上架（前台可見）
+        </Label>
       </div>
 
       <div className="flex flex-wrap gap-3">

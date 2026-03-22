@@ -2,6 +2,7 @@ import { StarRating } from "@/components/course/StarRating";
 import { fetchCourseById } from "@/lib/courses-queries";
 import { isDatabaseConfigured } from "@/lib/env";
 import { formatTwd } from "@/lib/format-currency";
+import { siteOriginFromEnv, toAbsoluteUrl } from "@/lib/seo/absolute-url";
 import type { Course } from "@/lib/types/course";
 import { Check, ChevronRight, Clock, UserRound } from "lucide-react";
 import type { Metadata } from "next";
@@ -9,43 +10,75 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+function courseMetaDescription(course: Course): string {
+  const base =
+    course.description?.replace(/\s+/g, " ").trim().slice(0, 140) ||
+    (course.instructor
+      ? `${course.category}實戰線上課，${course.instructor} 主講。`
+      : `${course.category}實戰線上課程，隨時開課、無限回放。`);
+  const ratingLine =
+    course.reviewCount > 0
+      ? ` 評分 ${course.rating.toFixed(1)}（${course.reviewCount.toLocaleString("zh-TW")} 則評價）。`
+      : "";
+  const priceLine = ` 線上特惠 ${formatTwd(course.priceSale)}。`;
+  return `${base}${ratingLine}${priceLine}`.slice(0, 160);
+}
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
+  const origin = siteOriginFromEnv();
+
   if (!isDatabaseConfigured()) {
     return { title: "課程詳情" };
   }
 
   const res = await fetchCourseById(id);
-  if (res.error || !res.data) return { title: "找不到課程" };
+  if (res.error || !res.data) {
+    return { title: "找不到課程", robots: { index: false, follow: false } };
+  }
   const course = res.data;
 
-  const desc =
-    course.description?.slice(0, 120) ??
-    `${course.category}｜講師 ${course.instructor}`;
+  const canonical = `${origin}/courses/${id}`;
+  const description = courseMetaDescription(course);
+  const titleAbsolute = `${course.title}｜${course.category}線上課｜NECVA`;
+  const ogImage = toAbsoluteUrl(course.coverImage, origin);
 
   return {
-    title: course.title,
-    description: `${desc}｜評分 ${course.rating}（${course.reviewCount} 則）｜特價 ${formatTwd(course.priceSale)}`,
+    title: { absolute: titleAbsolute },
+    description,
+    keywords: [course.category, "線上課程", "NECVA", course.title],
+    alternates: { canonical },
     openGraph: {
+      type: "website",
+      locale: "zh_TW",
+      url: canonical,
+      siteName: "NECVA",
       title: course.title,
-      description: `與 ${course.instructor} 一起實戰學習：${course.category}`,
+      description,
       images: [
         {
-          url: course.coverImage,
-          width: 800,
-          height: 500,
+          url: ogImage,
+          width: 1200,
+          height: 630,
           alt: course.title,
         },
       ],
     },
+    twitter: {
+      card: "summary_large_image",
+      title: course.title,
+      description,
+      images: [ogImage],
+    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -60,7 +93,11 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
     "想透過專題累積作品、面試時能具體說明的學員",
   ];
 
-  if (course.category === "資訊科技" || course.category === "人工智慧") {
+  if (
+    course.category === "人工智慧" ||
+    course.category === "網頁前端" ||
+    course.category === "數據分析"
+  ) {
     return {
       learn: [
         "環境建置到部署的完整流程與除錯技巧",
@@ -73,7 +110,7 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
       ],
     };
   }
-  if (course.category === "設計創意") {
+  if (course.category === "設計與多媒體") {
     return {
       learn: [
         "從使用者研究到視覺交付的設計流程",
@@ -81,6 +118,19 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
         ...baseLearn.slice(0, 2),
       ],
       audience: ["對 UI/UX 有興趣的設計新手與產品工作者", ...baseAudience],
+    };
+  }
+  if (course.category === "數位行銷" || course.category === "職涯與管理") {
+    return {
+      learn: [
+        "可落地的策略框架與成效檢視方式",
+        "案例拆解與實作節奏，對齊職場真實情境",
+        ...baseLearn.slice(0, 2),
+      ],
+      audience: [
+        "想提升行銷／營運或管理思維的上班族與轉職者",
+        ...baseAudience,
+      ],
     };
   }
   return { learn: baseLearn, audience: baseAudience };
@@ -150,19 +200,30 @@ export default async function CourseDetailPage({ params }: PageProps) {
                 {course.title}
               </h1>
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <UserRound className="size-4 text-necva-primary" aria-hidden />
-                  講師 {course.instructor}
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <StarRating rating={course.rating} size="md" />
-                  <span className="font-semibold text-zinc-800">
-                    {course.rating.toFixed(1)}
+                {course.instructor ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <UserRound className="size-4 text-necva-primary" aria-hidden />
+                    講師 {course.instructor}
                   </span>
-                  <span className="text-zinc-400">
-                    （{course.reviewCount.toLocaleString("zh-TW")} 則評價）
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-zinc-500">
+                    <UserRound className="size-4 text-zinc-400" aria-hidden />
+                    線上影音課程
                   </span>
-                </span>
+                )}
+                {course.reviewCount > 0 ? (
+                  <span className="inline-flex items-center gap-2">
+                    <StarRating rating={course.rating} size="md" />
+                    <span className="font-semibold text-zinc-800">
+                      {course.rating.toFixed(1)}
+                    </span>
+                    <span className="text-zinc-400">
+                      （{course.reviewCount.toLocaleString("zh-TW")} 則評價）
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-400">評價將於課程上架後陸續開放</span>
+                )}
                 <span className="inline-flex items-center gap-1.5 text-zinc-500">
                   <Clock className="size-4" aria-hidden />
                   隨時開課 · 無限回放
@@ -177,8 +238,11 @@ export default async function CourseDetailPage({ params }: PageProps) {
             ) : (
               <p className="mt-8 text-base leading-relaxed text-zinc-600">
                 本課程以<strong className="text-zinc-800">實戰專案</strong>
-                為核心，由 {course.instructor}{" "}
-                帶你逐步完成可展示的成果。內容涵蓋觀念說明、操作示範與常見陷阱解析，讓你能對齊職場真實情境，學完即可上手應用。
+                為核心
+                {course.instructor
+                  ? `，由 ${course.instructor} 帶你逐步完成可展示的成果。`
+                  : "，帶你逐步完成可展示的成果。"}
+                內容涵蓋觀念說明、操作示範與常見陷阱解析，讓你能對齊職場真實情境，學完即可上手應用。
               </p>
             )}
 

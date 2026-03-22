@@ -1,4 +1,4 @@
-import { navCourseCategories } from "@/lib/nav-course-categories";
+import type { NavCategoryLink } from "@/lib/category-nav-links";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import type { RefObject } from "react";
@@ -6,6 +6,7 @@ import { NavSearchForm } from "./NavSearchForm";
 
 type Props = {
   drawerRef: RefObject<HTMLDivElement | null>;
+  categories: NavCategoryLink[];
   searchQuery: string;
   mobileCourseOpen: boolean;
   setMobileCourseOpen: (v: boolean | ((b: boolean) => boolean)) => void;
@@ -14,6 +15,7 @@ type Props = {
 
 export function MobileNavDrawer({
   drawerRef,
+  categories,
   searchQuery,
   mobileCourseOpen,
   setMobileCourseOpen,
@@ -55,31 +57,22 @@ export function MobileNavDrawer({
               />
             </button>
             {mobileCourseOpen && (
-              <ul className="space-y-4 border-l-2 border-necva-primary/20 pl-3 pb-2">
-                {navCourseCategories.map((group) => (
-                  <li key={group.label}>
-                    <Link
-                      href={group.href}
-                      className="text-sm font-medium text-necva-primary"
-                      onClick={onClose}
-                    >
-                      {group.label}
-                    </Link>
-                    <ul className="mt-2 space-y-1.5 pl-0">
-                      {group.children.map((item) => (
-                        <li key={item.label}>
-                          <Link
-                            href={item.href}
-                            className="text-sm text-zinc-600 hover:text-necva-primary"
-                            onClick={onClose}
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
+              <ul className="space-y-1 border-l-2 border-necva-primary/20 pl-3 pb-2">
+                {categories.length === 0 ? (
+                  <li className="py-2 text-sm text-zinc-500">尚無分類</li>
+                ) : (
+                  categories.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        href={c.href}
+                        className="block py-2 text-sm text-zinc-700 hover:text-necva-primary"
+                        onClick={onClose}
+                      >
+                        {c.name}
+                      </Link>
+                    </li>
+                  ))
+                )}
               </ul>
             )}
           </div>

@@ -14,6 +14,22 @@ export async function getAdminCourseById(id: string) {
   });
 }
 
+/** 後台深度編輯：含章節與課堂樹 */
+export async function getAdminCourseWithCurriculum(id: string) {
+  return prisma.course.findUnique({
+    where: { id },
+    include: {
+      category: true,
+      sections: {
+        orderBy: { order: "asc" },
+        include: {
+          lessons: { orderBy: { order: "asc" } },
+        },
+      },
+    },
+  });
+}
+
 export async function getCategoriesForSelect() {
   return prisma.category.findMany({
     orderBy: { name: "asc" },

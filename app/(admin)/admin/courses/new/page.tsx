@@ -17,17 +17,6 @@ export default async function NewCoursePage() {
   }
 
   const categories = await getCategoriesForSelect();
-  if (categories.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-6 text-sm">
-        尚無分類資料。請先執行{" "}
-        <code className="rounded bg-muted px-1">npm run db:seed</code>{" "}
-        或在資料庫建立 <code className="rounded bg-muted px-1">categories</code>{" "}
-        資料列。
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">

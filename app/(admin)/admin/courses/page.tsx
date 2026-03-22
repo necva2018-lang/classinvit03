@@ -39,11 +39,10 @@ export default async function AdminCoursesPage() {
   const data = rows.map((r) => ({
     id: r.id,
     title: r.title,
-    categoryName: r.category.name,
+    categoryName: r.category?.name ?? "未分類",
     price: r.price,
-    priceOriginal: r.priceOriginal,
-    rating: r.rating.toString(),
-    instructorName: r.instructorName,
+    discountedPrice: r.discountedPrice,
+    isPublished: r.isPublished,
     updatedAt: r.updatedAt.toISOString(),
   }));
 

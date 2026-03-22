@@ -33,19 +33,27 @@ export function CourseCard({ course }: Props) {
           <Link href={href}>{course.title}</Link>
         </h3>
 
-        <p className="mt-2 text-xs text-zinc-500 sm:text-sm">
-          講師：{course.instructor}
-        </p>
+        {course.instructor ? (
+          <p className="mt-2 text-xs text-zinc-500 sm:text-sm">
+            講師：{course.instructor}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-400 sm:text-sm">線上影音課程</p>
+        )}
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <StarRating rating={course.rating} />
-          <span className="text-sm font-semibold text-zinc-800">
-            {course.rating.toFixed(1)}
-          </span>
-          <span className="text-xs text-zinc-400">
-            （{course.reviewCount.toLocaleString("zh-TW")} 則評價）
-          </span>
-        </div>
+        {course.reviewCount > 0 ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <StarRating rating={course.rating} />
+            <span className="text-sm font-semibold text-zinc-800">
+              {course.rating.toFixed(1)}
+            </span>
+            <span className="text-xs text-zinc-400">
+              （{course.reviewCount.toLocaleString("zh-TW")} 則評價）
+            </span>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-400">評價將於課程上架後陸續開放</p>
+        )}
 
         <div className="mt-auto flex flex-wrap items-baseline justify-end gap-2 border-t border-zinc-100 pt-3">
           {showOriginal && (

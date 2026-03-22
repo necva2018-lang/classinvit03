@@ -5,6 +5,11 @@ import type { Course } from "@/lib/types/course";
 
 const courseInclude = { category: true } as const;
 
+function isLikelyCourseId(id: string): boolean {
+  const t = id.trim();
+  return t.length >= 8 && t.length <= 64 && /^[a-z0-9]+$/i.test(t);
+}
+
 export async function fetchCourses(): Promise<{
   data: Course[];
   error: Error | null;
@@ -18,6 +23,7 @@ export async function fetchCourses(): Promise<{
 
   try {
     const rows = await prisma.course.findMany({
+      where: { isPublished: true },
       include: courseInclude,
       orderBy: { createdAt: "asc" },
     });
@@ -27,9 +33,6 @@ export async function fetchCourses(): Promise<{
     return { data: [], error: new Error(message) };
   }
 }
-
-const uuidRe =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function fetchCourseById(
   id: string,
@@ -41,13 +44,13 @@ export async function fetchCourseById(
     };
   }
 
-  if (!uuidRe.test(id)) {
+  if (!isLikelyCourseId(id)) {
     return { data: null, error: null };
   }
 
   try {
-    const row = await prisma.course.findUnique({
-      where: { id },
+    const row = await prisma.course.findFirst({
+      where: { id, isPublished: true },
       include: courseInclude,
     });
     if (!row) return { data: null, error: null };

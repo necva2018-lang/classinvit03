@@ -8,8 +8,10 @@ import {
   type PriceFilterId,
   type SortMode,
 } from "@/lib/course-filters";
+import { isCourseFilterTagId } from "@/lib/course-filters";
 import type { Course } from "@/lib/types/course";
 import { Filter, Loader2, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 function matchesPrice(sale: number, tier: PriceFilterId): boolean {
@@ -20,6 +22,7 @@ function matchesPrice(sale: number, tier: PriceFilterId): boolean {
 }
 
 export function CourseListClient() {
+  const searchParams = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -29,6 +32,17 @@ export function CourseListClient() {
   );
   const [priceTier, setPriceTier] = useState<PriceFilterId>("all");
   const [sort, setSort] = useState<SortMode>("default");
+
+  const tagParam = searchParams.get("tag");
+  useEffect(() => {
+    if (tagParam && isCourseFilterTagId(tagParam)) {
+      setSelectedTags(new Set([tagParam]));
+      return;
+    }
+    if (tagParam !== null) {
+      setSelectedTags(new Set());
+    }
+  }, [tagParam]);
 
   useEffect(() => {
     let cancelled = false;

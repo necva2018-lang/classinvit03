@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_TC } from "next/font/google";
 import { SkipToMain } from "@/components/skip-to-main";
+import { assertAppEnv } from "@/lib/env-check";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
@@ -56,6 +57,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  assertAppEnv();
+
   return (
     <html lang="zh-TW" className={`${notoSansTc.variable} h-full scroll-smooth antialiased`}>
       <body className="flex min-h-full flex-col font-sans">

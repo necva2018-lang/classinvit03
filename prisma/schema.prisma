@@ -7,120 +7,103 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// 平台會員（學員／講師／管理員）
-enum UserRole {
-  STUDENT
-  INSTRUCTOR
-  ADMIN
-}
-
+// 使用者與權限管理
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  name      String?
-  phone     String?  @map("phone")
-  avatarUrl String?  @map("avatar_url")
-  role      UserRole @default(STUDENT) @map("role")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  orders              Order[]
-  /// 若開通講師帳號，可綁定為課程的「官方講師使用者」
-  coursesAsInstructor Course[] @relation("CourseInstructorUser")
-
-  @@map("users")
+  id          String   @id @default(cuid())
+  name        String?
+  email       String?  @unique
+  image       String?
+  role        Role     @default(STUDENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  enrollments Enrollment[]
 }
 
+enum Role {
+  STUDENT
+  ADMIN
+  INSTRUCTOR
+}
+
+// 課程分類 (如：人工智慧、網頁前端)
 model Category {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String?  @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  id      String   @id @default(cuid())
+  name    String   @unique
   courses Course[]
-
-  @@map("categories")
 }
 
-/// 線上課程（TibaMe 風格：列表資訊 + 可綁定講師帳號）
+// 課程主體
 model Course {
-  id             String   @id @default(uuid()) @db.Uuid
-  title          String
-  description    String?
-  price          Int
-  priceOriginal  Int?     @map("price_original")
-  coverImageUrl  String   @map("cover_image_url")
-  /// 顯示用講師名稱（與 User 綁定可並存）
-  instructorName String   @map("instructor_name")
-  rating         Decimal  @db.Decimal(3, 1)
-  reviewCount    Int      @default(0) @map("review_count")
-  slug           String?  @unique
-  filterTags     String[] @default([]) @map("filter_tags")
-
-  categoryId String   @map("category_id") @db.Uuid
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  instructorUserId String? @map("instructor_user_id") @db.Uuid
-  instructorUser   User?   @relation("CourseInstructorUser", fields: [instructorUserId], references: [id], onDelete: SetNull)
-
-  chapters Chapter[]
-  orders   Order[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([categoryId])
-  @@index([instructorUserId])
-  @@map("courses")
-}
-
-/// 課程章節（大綱／內容／影片）
-model Chapter {
-  id              String  @id @default(uuid()) @db.Uuid
-  courseId        String  @map("course_id") @db.Uuid
-  course          Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
   title           String
-  /// 同課程內排序（0, 1, 2…）
-  sortOrder       Int     @default(0) @map("sort_order")
-  summary         String?
-  content         String? @db.Text
-  videoUrl        String? @map("video_url")
-  durationSeconds Int?    @map("duration_seconds")
-  /// 是否開放未購課試看
-  isPreviewFree   Boolean @default(false) @map("is_preview_free")
+  subtitle        String?  @db.Text
+  description     String?  @db.Text
+  imageUrl        String?  @db.Text
+  price           Float?
+  discountedPrice Float?
+  isPublished     Boolean  @default(false)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
-  @@index([courseId, sortOrder])
-  @@map("chapters")
+  sections    Section[]
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-/// 訂單（購課／金流對帳）
-model Order {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @map("user_id") @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+// 課程章節 (如：第一章：環境架設)
+model Section {
+  id       String @id @default(cuid())
+  title    String
+  /// 排序權重（數字越小越前）
+  order    Int    @map("section_order")
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+}
 
-  courseId String? @map("course_id") @db.Uuid
-  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+// 課堂內容 (如：1-1 安裝 VS Code)
+model Lesson {
+  id        String  @id @default(cuid())
+  title     String
+  videoUrl  String? @db.Text
+  duration  Int?
+  order     Int     @map("lesson_order")
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
 
-  amount   Int
-  currency String @default("TWD")
-  /// 建議值：pending | paid | cancelled | refunded
-  status   String @default("pending")
+// 首頁輪播 Banner
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?  @db.Text
+  imageUrl  String   @db.Text
+  linkUrl   String?  @db.Text
+  linkLabel String?
+  order     Int      @default(0) @map("banner_order")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
-  orderNumber       String?   @unique @map("order_number")
-  paidAt            DateTime? @map("paid_at")
-  paymentProvider   String?   @map("payment_provider")
-  externalPaymentId String?   @map("external_payment_id")
+// 全站鍵值設定（如 site_name、SEO、聯絡資訊）
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+// 訂單/購買紀錄
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
-  @@index([userId])
-  @@index([status])
-  @@map("orders")
+  @@unique([userId, courseId])
 }
