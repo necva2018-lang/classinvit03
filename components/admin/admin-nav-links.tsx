@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Building2,
+  FolderTree,
   ImageIcon,
   LayoutDashboard,
   PanelLeft,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin/dashboard", label: "儀表板", icon: LayoutDashboard },
   { href: "/admin/courses", label: "課程管理", icon: BookOpen },
+  { href: "/admin/categories", label: "課程類別", icon: FolderTree },
   { href: "/admin/orders", label: "訂單紀錄", icon: ShoppingBag },
   { href: "/admin/banners", label: "首頁輪播", icon: ImageIcon },
   { href: "/admin/settings", label: "全站設定", icon: Settings2 },

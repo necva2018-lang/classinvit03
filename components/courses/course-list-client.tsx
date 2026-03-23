@@ -21,11 +21,60 @@ function matchesPrice(sale: number, tier: PriceFilterId): boolean {
   return sale > 3000;
 }
 
+/** API 回傳的 Prisma 訊息常含編譯器路徑，僅顯示連線重點 */
+function simplifyCoursesApiError(raw: string): string {
+  const i = raw.indexOf("Can't reach database server");
+  if (i >= 0) {
+    const tail = raw.slice(i).replace(/\s+/g, " ").trim();
+    return tail.slice(0, 420);
+  }
+  return raw.length > 600 ? `${raw.slice(0, 500)}…` : raw;
+}
+
+function zeaburMissingDatabaseUrlHints(): string[] {
+  return [
+    "此訊息代表：Zeabur 上「正在跑網站的那個 Web 容器」沒有環境變數 DATABASE_URL。與你電腦專案根目錄的 .env 無關（.env 不會被上傳到 GitHub）。",
+    "請到 Zeabur → 你的專案 → 選 Next.js「Web」服務 → Variables（或 Connection / Bind）：把同一專案內的 PostgreSQL 綁定到 Web，讓平台自動寫入 DATABASE_URL；或手動新增變數 DATABASE_URL，值用 PostgreSQL 提供的連線字串（同專案建議用 Internal／內網）。",
+    "儲存後務必對 Web 服務按「重新部署 Redeploy」或重啟，再重新整理課程頁。",
+    "若變數已填仍 503：檢查該變數是否只在 Build 階段生效、Runtime 沒有（依 Zeabur 介面勾選「執行階段可用」或同等選項）。",
+    "補充：migrate deploy / db:seed 是「資料庫裡要有表與資料」；必須在 DATABASE_URL 已生效、且能連線之後才會成功。",
+  ];
+}
+
+function coursesLoadErrorHints(raw: string, httpStatus: number | null): string[] {
+  const lower = raw.toLowerCase();
+  if (
+    httpStatus === 503 ||
+    lower.includes("database_url_missing") ||
+    lower.includes("未讀到 database_url") ||
+    lower.includes("未設定 database_url")
+  ) {
+    return zeaburMissingDatabaseUrlHints();
+  }
+  if (
+    lower.includes("can't reach database server") ||
+    lower.includes("p1001") ||
+    lower.includes("econnrefused") ||
+    lower.includes("etimedout")
+  ) {
+    return [
+      "你現在若是本機 `npm run dev`：電腦必須能連到該 IP:port。Zeabur「內網」DATABASE_URL 只給同專案容器用，貼在本機 .env 常會變成 Can't reach。請改用最後台 PostgreSQL 提供的「外網／Public」Connection String。",
+      "Zeabur → PostgreSQL 服務 → 開啟 Public Networking（若尚未）→ 複製外網連線字串到專案根目錄 `.env` 的 `DATABASE_URL`，存檔後重啟 `npm run dev`。",
+      "若仍失敗：在連線字串結尾試加 `?sslmode=require`；暫關 VPN、換網路或檢查防火牆。",
+      "若只有「已部署的 https 網站」要顯示課程：請確認 Zeabur Web 已綁定 PostgreSQL（內網即可）；與你筆電上的 .env 無關。",
+    ];
+  }
+  return [
+    "請確認已對同一資料庫執行 `npx prisma migrate deploy`（建立資料表），需要示範課程可執行 `npm run db:seed`。",
+  ];
+}
+
 export function CourseListClient() {
   const searchParams = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorStatus, setLoadErrorStatus] = useState<number | null>(null);
 
   const [selectedTags, setSelectedTags] = useState<Set<CourseFilterTagId>>(
     () => new Set(),
@@ -50,6 +99,7 @@ export function CourseListClient() {
     async function load() {
       setLoading(true);
       setLoadError(null);
+      setLoadErrorStatus(null);
 
       try {
         const res = await fetch("/api/courses");
@@ -59,6 +109,7 @@ export function CourseListClient() {
         };
         if (cancelled) return;
         if (!res.ok) {
+          setLoadErrorStatus(res.status);
           setLoadError(json.error ?? `載入失敗（HTTP ${res.status}）`);
           setCourses([]);
         } else {
@@ -126,17 +177,18 @@ export function CourseListClient() {
   }
 
   if (loadError) {
+    const hints = coursesLoadErrorHints(loadError, loadErrorStatus);
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8 text-sm text-amber-900">
         <p className="font-semibold">無法載入課程</p>
-        <p className="mt-2 text-amber-800/90">{loadError}</p>
-        <p className="mt-4 text-xs text-amber-800/80">
-          請確認根目錄 <code className="rounded bg-white/80 px-1">.env</code> 已設定{" "}
-          <code className="rounded bg-white/80 px-1">DATABASE_URL</code>，並已執行{" "}
-          <code className="rounded bg-white/80 px-1">npx prisma migrate deploy</code>{" "}
-          與 <code className="rounded bg-white/80 px-1">npm run db:seed</code>
-          建立資料表與種子。
+        <p className="mt-2 font-mono text-xs leading-relaxed text-amber-900/95">
+          {simplifyCoursesApiError(loadError)}
         </p>
+        <ul className="mt-4 list-inside list-disc space-y-2 text-xs text-amber-800/90">
+          {hints.map((h) => (
+            <li key={h}>{h}</li>
+          ))}
+        </ul>
       </div>
     );
   }

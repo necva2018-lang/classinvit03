@@ -27,9 +27,11 @@ enum Role {
 
 // 課程分類 (如：人工智慧、網頁前端)
 model Category {
-  id      String   @id @default(cuid())
-  name    String   @unique
-  courses Course[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  /// 排序權重（數字越小越前；導覽與下拉選單依此欄位）
+  sortOrder Int      @default(0) @map("category_sort_order")
+  courses   Course[]
 }
 
 // 課程主體
@@ -38,19 +40,36 @@ model Course {
   title           String
   subtitle        String?  @db.Text
   description     String?  @db.Text
+  /// 前台「學習前基本能力」：每行一則，空白則顯示站方預設
+  prerequisiteText String? @db.Text @map("course_prerequisite_text")
+  /// 前台「學習前準備」：每行一則
+  preparationText  String? @db.Text @map("course_preparation_text")
   imageUrl        String?  @db.Text
   price           Float?
   discountedPrice Float?
   isPublished     Boolean  @default(false)
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
+  categories Category[]
 
-  sections    Section[]
-  enrollments Enrollment[]
+  sections       Section[]
+  enrollments    Enrollment[]
+  announcements  CourseAnnouncement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// 前台「公告」分頁
+model CourseAnnouncement {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?  @db.Text
+  sortOrder Int      @default(0) @map("announcement_sort_order")
+  createdAt DateTime @default(now())
+
+  @@index([courseId])
 }
 
 // 課程章節 (如：第一章：環境架設)

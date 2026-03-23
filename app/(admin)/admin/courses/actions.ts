@@ -10,6 +10,16 @@ function parseFloatOrNull(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function categoryIdsFromForm(formData: FormData): string[] {
+  const raw = formData.getAll("categoryIds");
+  const ids: string[] = [];
+  for (const v of raw) {
+    const s = String(v).trim();
+    if (s) ids.push(s);
+  }
+  return ids;
+}
+
 export async function createCourse(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   if (!title) {
@@ -18,9 +28,12 @@ export async function createCourse(formData: FormData) {
 
   const subtitle = String(formData.get("subtitle") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
+  const prerequisiteText =
+    String(formData.get("prerequisiteText") ?? "").trim() || null;
+  const preparationText =
+    String(formData.get("preparationText") ?? "").trim() || null;
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
-  const cat = String(formData.get("categoryId") ?? "").trim();
-  const categoryId = cat === "" ? null : cat;
+  const categoryIds = categoryIdsFromForm(formData);
   const price = parseFloatOrNull(formData.get("price"));
   const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
   const isPublished = formData.get("isPublished") === "on";
@@ -30,11 +43,16 @@ export async function createCourse(formData: FormData) {
       title,
       subtitle,
       description,
+      prerequisiteText,
+      preparationText,
       imageUrl,
       price,
       discountedPrice,
       isPublished,
-      categoryId,
+      categories:
+        categoryIds.length > 0
+          ? { connect: categoryIds.map((id) => ({ id })) }
+          : undefined,
     },
   });
 
@@ -53,9 +71,12 @@ export async function updateCourse(courseId: string, formData: FormData) {
 
   const subtitle = String(formData.get("subtitle") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
+  const prerequisiteText =
+    String(formData.get("prerequisiteText") ?? "").trim() || null;
+  const preparationText =
+    String(formData.get("preparationText") ?? "").trim() || null;
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
-  const cat = String(formData.get("categoryId") ?? "").trim();
-  const categoryId = cat === "" ? null : cat;
+  const categoryIds = categoryIdsFromForm(formData);
   const price = parseFloatOrNull(formData.get("price"));
   const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
   const isPublished = formData.get("isPublished") === "on";
@@ -66,11 +87,13 @@ export async function updateCourse(courseId: string, formData: FormData) {
       title,
       subtitle,
       description,
+      prerequisiteText,
+      preparationText,
       imageUrl,
       price,
       discountedPrice,
       isPublished,
-      categoryId,
+      categories: { set: categoryIds.map((id) => ({ id })) },
     },
   });
 

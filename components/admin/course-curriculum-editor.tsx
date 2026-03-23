@@ -16,6 +16,7 @@ import {
   type CourseSectionDraftInput,
   type CourseTreeDrafts,
 } from "@/lib/validation/course-curriculum";
+import { CourseAnnouncementsPanel } from "@/components/admin/course-announcements-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ import {
   Clapperboard,
   GraduationCap,
   Layers,
+  Megaphone,
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -48,17 +50,26 @@ export type CurriculumSectionInitial = {
   lessons: CurriculumLessonInitial[];
 };
 
+export type CurriculumAnnouncementInitial = {
+  id: string;
+  title: string;
+  body: string | null;
+  createdAt: string;
+};
+
 export type CurriculumEditorInitial = {
   /** 資料版本（通常為 course.updatedAt），儲存後 refresh 時用於同步草稿 */
   version: string;
   courseId: string;
   course: CourseCurriculumCourseInput;
+  announcements: CurriculumAnnouncementInitial[];
   sections: CurriculumSectionInitial[];
   categories: CourseFormCategoryOption[];
 };
 
 type Selection =
   | { kind: "course" }
+  | { kind: "announcements" }
   | { kind: "section"; id: string }
   | { kind: "lesson"; id: string; sectionId: string };
 
@@ -194,6 +205,23 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
             <GraduationCap className="size-4 shrink-0 opacity-80" aria-hidden />
             <span className="min-w-0 flex-1 truncate font-medium">課程資訊</span>
             <WarningDot show={invalidIds.has(initial.courseId)} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelection({ kind: "announcements" })}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
+              selection.kind === "announcements"
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted",
+            )}
+          >
+            <Megaphone className="size-4 shrink-0 opacity-80" aria-hidden />
+            <span className="min-w-0 flex-1 truncate font-medium">課程公告</span>
+            <span className="tabular-nums text-xs text-muted-foreground">
+              {initial.announcements.length}
+            </span>
           </button>
 
           <Separator className="my-2" />
@@ -363,7 +391,7 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="c-sub">副標題</Label>
+              <Label htmlFor="c-sub">副標題／摘要（前台標題區）</Label>
               <Input
                 id="c-sub"
                 value={course.subtitle ?? ""}
@@ -372,10 +400,11 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                     subtitle: e.target.value === "" ? null : e.target.value,
                   })
                 }
+                placeholder="一行摘要"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="c-desc">課程介紹</Label>
+              <Label htmlFor="c-desc">完整課程介紹（前台「介紹」分頁）</Label>
               <textarea
                 id="c-desc"
                 rows={4}
@@ -386,27 +415,73 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                   })
                 }
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="支援多行純文字"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="c-cat">分類</Label>
-              <select
-                id="c-cat"
-                value={course.categoryId ?? ""}
+              <Label htmlFor="c-pre">學習前基本能力（每行一則）</Label>
+              <textarea
+                id="c-pre"
+                rows={3}
+                value={course.prerequisiteText ?? ""}
                 onChange={(e) =>
                   updateCourse({
-                    categoryId: e.target.value === "" ? null : e.target.value,
+                    prerequisiteText:
+                      e.target.value === "" ? null : e.target.value,
                   })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="">— 未分類 —</option>
-                {initial.categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="空白則前台使用站方預設"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="c-prep">學習前準備（每行一則）</Label>
+              <textarea
+                id="c-prep"
+                rows={3}
+                value={course.preparationText ?? ""}
+                onChange={(e) =>
+                  updateCourse({
+                    preparationText:
+                      e.target.value === "" ? null : e.target.value,
+                  })
+                }
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="空白則前台使用站方預設"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>分類（可複選）</Label>
+              <div className="space-y-2 rounded-md border border-input p-3">
+                {initial.categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    尚無類別，請至「課程類別」建立。
+                  </p>
+                ) : (
+                  initial.categories.map((c) => {
+                    const checked = (course.categoryIds ?? []).includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm font-normal"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const set = new Set(course.categoryIds ?? []);
+                            if (e.target.checked) set.add(c.id);
+                            else set.delete(c.id);
+                            updateCourse({ categoryIds: [...set] });
+                          }}
+                          className="size-4 rounded border-input"
+                        />
+                        {c.name}
+                      </label>
+                    );
+                  })
+                )}
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
@@ -491,6 +566,13 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {selection.kind === "announcements" ? (
+          <CourseAnnouncementsPanel
+            courseId={initial.courseId}
+            initialRows={initial.announcements}
+          />
         ) : null}
 
         {selection.kind === "section" && selectedSectionDraft ? (

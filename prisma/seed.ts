@@ -97,8 +97,8 @@ async function main() {
     const id = `cm0seedcat${String(i + 1).padStart(2, "0")}`;
     const row = await prisma.category.upsert({
       where: { name: opt.label },
-      create: { id, name: opt.label },
-      update: {},
+      create: { id, name: opt.label, sortOrder: i },
+      update: { sortOrder: i },
     });
     categoryIds[opt.id] = row.id;
   }
@@ -115,12 +115,12 @@ async function main() {
       price: 4800,
       discountedPrice: 2880,
       isPublished: true,
-      categoryId: categoryIds.data,
+      categories: { connect: [{ id: categoryIds.data }] },
     },
     update: {
       title: "Python 資料分析入門到實戰",
       isPublished: true,
-      categoryId: categoryIds.data,
+      categories: { set: [{ id: categoryIds.data }] },
     },
   });
 
@@ -135,9 +135,12 @@ async function main() {
       price: 3600,
       discountedPrice: 2180,
       isPublished: true,
-      categoryId: categoryIds.design,
+      categories: { connect: [{ id: categoryIds.design }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.design },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.design }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -151,9 +154,12 @@ async function main() {
       price: 4200,
       discountedPrice: 2520,
       isPublished: true,
-      categoryId: categoryIds.marketing,
+      categories: { connect: [{ id: categoryIds.marketing }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.marketing },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.marketing }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -168,9 +174,12 @@ async function main() {
       price: 5200,
       discountedPrice: 3280,
       isPublished: true,
-      categoryId: categoryIds.ai,
+      categories: { connect: [{ id: categoryIds.ai }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.ai },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.ai }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -185,9 +194,12 @@ async function main() {
       price: 5800,
       discountedPrice: 3980,
       isPublished: true,
-      categoryId: categoryIds.frontend,
+      categories: { connect: [{ id: categoryIds.frontend }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.frontend },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.frontend }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -201,9 +213,12 @@ async function main() {
       imageUrl: IMG("/photo-1542744173-8e7e53415bb0"),
       price: 2800,
       isPublished: true,
-      categoryId: categoryIds.career,
+      categories: { connect: [{ id: categoryIds.career }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.career },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.career }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -218,9 +233,12 @@ async function main() {
       price: 4500,
       discountedPrice: 3200,
       isPublished: true,
-      categoryId: categoryIds.data,
+      categories: { connect: [{ id: categoryIds.data }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.data },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.data }] },
+    },
   });
 
   await prisma.course.upsert({
@@ -235,9 +253,12 @@ async function main() {
       price: 3900,
       discountedPrice: 2680,
       isPublished: true,
-      categoryId: categoryIds.design,
+      categories: { connect: [{ id: categoryIds.design }] },
     },
-    update: { isPublished: true, categoryId: categoryIds.design },
+    update: {
+      isPublished: true,
+      categories: { set: [{ id: categoryIds.design }] },
+    },
   });
 
   const sec1 = await prisma.section.upsert({

@@ -28,6 +28,7 @@ Desktop.ini
 
 # IDE（若需共用設定可改為追蹤 .vscode/extensions.json）
 .idea/
+.cursor/
 
 # Prisma（本機 SQLite 實驗用，此專案預設為 PostgreSQL）
 *.db

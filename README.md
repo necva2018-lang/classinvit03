@@ -61,11 +61,15 @@ npm install
 - `components/ui/` — shadcn 相容基礎元件
 - `DEVELOPMENT_LOG.md` — 開發過程與架構紀錄
 
-## 部署（Zeabur 等）
+## 部署（Zeabur：Web + PostgreSQL 同專案）
 
-- 在託管平台設定 **`DATABASE_URL`**
-- 建置前需執行 `prisma generate`（本專案 `postinstall` 已包含）
-- 對**同一資料庫**在可信環境執行 `npx prisma migrate deploy` 後再發布 Web
+1. **Zeabur 專案**內新增 **PostgreSQL**，再新增 **Web**（連結此 repo）。
+2. 在 **Web 服務**將 PostgreSQL **綁定／連結**，讓平台注入 **`DATABASE_URL`**（優先使用 **Internal／內網** 連線字串；與 DB 同叢集時不必為資料庫開公網給 App 用）。
+3. 在 Web 服務 **Variables** 設定 **`NEXT_PUBLIC_SITE_URL`** = 你的公開網址（例如 `https://xxx.zeabur.app`），**勿留空字串**。
+4. **遷移**：在能連到該 DB 的環境執行一次 `npx prisma migrate deploy`（可本機用 Public 連線跑完，再上線內網 `DATABASE_URL`；或用 Zeabur 終端機對同一 DB 執行）。選用：`npm run db:seed`。
+5. 建置：`postinstall` 已含 `prisma generate`；`npm run build` 會再執行 `prisma generate && next build`。
+
+本機開發若直接連 Zeabur PostgreSQL，需在資料庫服務開 **Public Networking**，並把**外網** Connection String 放進本機 `.env`。
 
 ## 安全提醒
 

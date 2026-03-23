@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          "伺服器未設定 DATABASE_URL。請在 Zeabur PostgreSQL 複製連線字串並寫入專案根目錄的 .env。",
+          "DATABASE_URL_MISSING: 執行中的 Web 服務未讀到 DATABASE_URL（與本機 .env 無關）。請在 Zeabur「Web 服務」綁定 PostgreSQL，或於 Variables 新增 DATABASE_URL 後重新部署。",
         data: [] as const,
       },
       { status: 503 },

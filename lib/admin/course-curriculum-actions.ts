@@ -48,8 +48,12 @@ export async function saveCourseMeta(
       title: d.title,
       subtitle: d.subtitle ?? null,
       description: d.description ?? null,
+      prerequisiteText: d.prerequisiteText ?? null,
+      preparationText: d.preparationText ?? null,
       imageUrl: d.imageUrl ?? null,
-      categoryId: d.categoryId ?? null,
+      categories: {
+        set: (d.categoryIds ?? []).map((id) => ({ id })),
+      },
       price: d.price ?? null,
       discountedPrice: d.discountedPrice ?? null,
       isPublished: d.isPublished,

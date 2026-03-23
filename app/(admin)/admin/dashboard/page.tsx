@@ -40,8 +40,8 @@ export default async function AdminDashboardPage() {
       <div className="space-y-4 rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
         <p className="font-semibold">無法載入統計資料</p>
         <p className="text-destructive/90">
-          下列為資料庫連線／Prisma 回報重點（已略過編譯器路徑雜訊）。若為 Zeabur，幾乎都是外網連線字串或
-          SSL 設定問題，與 migration 無關。
+          下列為資料庫連線／Prisma 回報重點（已略過編譯器路徑雜訊）。Zeabur 同專案部署請確認 Web
+          已綁定 DB 且 DATABASE_URL 為內網字串；本機連雲端才需公網連線與 SSL。
         </p>
         <div className="rounded-md border border-destructive/20 bg-background/80 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-foreground">
           {result.error}

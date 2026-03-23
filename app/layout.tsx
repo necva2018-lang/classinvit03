@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_TC } from "next/font/google";
 import { SkipToMain } from "@/components/skip-to-main";
 import { assertAppEnv } from "@/lib/env-check";
+import { metadataBaseFromEnv } from "@/lib/site-url";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
@@ -11,11 +12,8 @@ const notoSansTc = Noto_Sans_TC({
   display: "swap",
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: metadataBaseFromEnv(),
   title: {
     default: "NECVA｜線上實戰學習平台",
     template: "%s｜NECVA",

@@ -1,3 +1,5 @@
+import { siteOriginFromEnv as originFromEnv } from "@/lib/site-url";
+
 /** Open Graph／canonical 用：將相對路徑轉成絕對 URL */
 export function toAbsoluteUrl(href: string, siteOrigin: string): string {
   const t = href.trim();
@@ -8,8 +10,5 @@ export function toAbsoluteUrl(href: string, siteOrigin: string): string {
 }
 
 export function siteOriginFromEnv(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
+  return originFromEnv();
 }

@@ -1,10 +1,17 @@
+import { CourseDetailSidebar } from "@/components/course/course-detail-sidebar";
+import { CourseDetailTabs } from "@/components/course/course-detail-tabs";
 import { StarRating } from "@/components/course/StarRating";
-import { fetchCourseById } from "@/lib/courses-queries";
+import { linesFromMultilineField } from "@/lib/course-detail-bullets";
+import {
+  fetchCourseById,
+  fetchPublishedCourseDetail,
+} from "@/lib/courses-queries";
 import { isDatabaseConfigured } from "@/lib/env";
 import { formatTwd } from "@/lib/format-currency";
 import { siteOriginFromEnv, toAbsoluteUrl } from "@/lib/seo/absolute-url";
+import type { CourseFilterTagId } from "@/lib/course-filters";
 import type { Course } from "@/lib/types/course";
-import { Check, ChevronRight, Clock, UserRound } from "lucide-react";
+import { ChevronRight, Clock, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -54,7 +61,12 @@ export async function generateMetadata({
   return {
     title: { absolute: titleAbsolute },
     description,
-    keywords: [course.category, "線上課程", "NECVA", course.title],
+    keywords: [
+      ...course.category.split("、").map((s) => s.trim()).filter(Boolean),
+      "線上課程",
+      "NECVA",
+      course.title,
+    ],
     alternates: { canonical },
     openGraph: {
       type: "website",
@@ -93,11 +105,9 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
     "想透過專題累積作品、面試時能具體說明的學員",
   ];
 
-  if (
-    course.category === "人工智慧" ||
-    course.category === "網頁前端" ||
-    course.category === "數據分析"
-  ) {
+  const tags = new Set<CourseFilterTagId>(course.filterTags);
+
+  if (tags.has("ai") || tags.has("frontend") || tags.has("data")) {
     return {
       learn: [
         "環境建置到部署的完整流程與除錯技巧",
@@ -110,7 +120,7 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
       ],
     };
   }
-  if (course.category === "設計與多媒體") {
+  if (tags.has("design")) {
     return {
       learn: [
         "從使用者研究到視覺交付的設計流程",
@@ -120,7 +130,7 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
       audience: ["對 UI/UX 有興趣的設計新手與產品工作者", ...baseAudience],
     };
   }
-  if (course.category === "數位行銷" || course.category === "職涯與管理") {
+  if (tags.has("marketing") || tags.has("career")) {
     return {
       learn: [
         "可落地的策略框架與成效檢視方式",
@@ -136,6 +146,18 @@ function outlineFor(course: Course): { learn: string[]; audience: string[] } {
   return { learn: baseLearn, audience: baseAudience };
 }
 
+const DEFAULT_PREREQUISITE = [
+  "能清楚描述你想解決的工作或學習情境。",
+  "無需特定證照；依課程主題可能需要基礎工具操作能力。",
+  "無需專業程式背景（除非課程標題另有標示）。",
+];
+
+const DEFAULT_PREPARE = [
+  "建議使用筆電或桌機，方便跟著操作與練習。",
+  "準備可穩定上網的環境；部分主題會使用雲端工具。",
+  "可事先整理與課程相關的範例資料，實作更有感。",
+];
+
 export default async function CourseDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -143,15 +165,48 @@ export default async function CourseDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const res = await fetchCourseById(id);
+  const res = await fetchPublishedCourseDetail(id);
   if (res.error || !res.data) {
     notFound();
   }
-  const course = res.data;
 
+  const {
+    course,
+    subtitle,
+    bodyDescription,
+    curriculum,
+    stats,
+    prerequisiteText,
+    preparationText,
+    announcements,
+  } = res.data;
   const { learn, audience } = outlineFor(course);
+  const prerequisiteBullets = linesFromMultilineField(
+    prerequisiteText,
+    DEFAULT_PREREQUISITE,
+  );
+  const prepareBullets = linesFromMultilineField(
+    preparationText,
+    DEFAULT_PREPARE,
+  );
+
   const showOriginal =
     course.priceOriginal != null && course.priceOriginal > course.priceSale;
+
+  const tagLabels =
+    course.category === "未分類"
+      ? []
+      : course.category
+          .split("、")
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+  const heroTeaser =
+    subtitle?.trim() ||
+    (bodyDescription?.trim()
+      ? bodyDescription.trim().slice(0, 220) +
+        (bodyDescription.trim().length > 220 ? "…" : "")
+      : null);
 
   return (
     <div className="flex flex-1 flex-col bg-white">
@@ -178,39 +233,52 @@ export default async function CourseDetailPage({ params }: PageProps) {
         </nav>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1fr_320px] lg:items-start lg:gap-12">
-          <article>
-            <div className="relative aspect-[21/9] overflow-hidden rounded-2xl bg-zinc-100 sm:aspect-[2/1]">
-              <Image
-                src={course.coverImage}
-                alt={course.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 896px"
-                className="object-cover"
-              />
-              <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-necva-primary shadow-sm backdrop-blur-sm">
-                {course.category}
-              </span>
-            </div>
-
-            <header className="mt-8">
-              <h1 className="text-2xl font-bold leading-tight text-zinc-900 sm:text-3xl">
+      {/* TibaMe 式：標題／價格／標籤／CTA + 封面並列 */}
+      <section className="border-b border-zinc-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,440px)] lg:gap-12">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-zinc-900 sm:text-3xl lg:text-[1.75rem] lg:leading-snug">
                 {course.title}
               </h1>
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600">
+
+              <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                {showOriginal ? (
+                  <span className="text-lg text-zinc-400 line-through sm:text-xl">
+                    {formatTwd(course.priceOriginal!)}
+                  </span>
+                ) : null}
+                <span className="text-3xl font-bold text-necva-accent sm:text-4xl">
+                  {formatTwd(course.priceSale)}
+                </span>
+              </div>
+
+              {tagLabels.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {tagLabels.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700"
+                    >
+                      ＃{t}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              {heroTeaser ? (
+                <p className="mt-5 text-sm leading-relaxed text-zinc-600 sm:text-base">
+                  {heroTeaser}
+                </p>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-zinc-600">
                 {course.instructor ? (
                   <span className="inline-flex items-center gap-1.5">
                     <UserRound className="size-4 text-necva-primary" aria-hidden />
-                    講師 {course.instructor}
+                    {course.instructor}
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-zinc-500">
-                    <UserRound className="size-4 text-zinc-400" aria-hidden />
-                    線上影音課程
-                  </span>
-                )}
+                ) : null}
                 {course.reviewCount > 0 ? (
                   <span className="inline-flex items-center gap-2">
                     <StarRating rating={course.rating} size="md" />
@@ -218,107 +286,69 @@ export default async function CourseDetailPage({ params }: PageProps) {
                       {course.rating.toFixed(1)}
                     </span>
                     <span className="text-zinc-400">
-                      （{course.reviewCount.toLocaleString("zh-TW")} 則評價）
+                      （{course.reviewCount.toLocaleString("zh-TW")} 則）
                     </span>
                   </span>
-                ) : (
-                  <span className="text-zinc-400">評價將於課程上架後陸續開放</span>
-                )}
+                ) : null}
                 <span className="inline-flex items-center gap-1.5 text-zinc-500">
                   <Clock className="size-4" aria-hidden />
                   隨時開課 · 無限回放
                 </span>
               </div>
-            </header>
 
-            {course.description ? (
-              <p className="mt-8 text-base leading-relaxed text-zinc-600 whitespace-pre-line">
-                {course.description}
-              </p>
-            ) : (
-              <p className="mt-8 text-base leading-relaxed text-zinc-600">
-                本課程以<strong className="text-zinc-800">實戰專案</strong>
-                為核心
-                {course.instructor
-                  ? `，由 ${course.instructor} 帶你逐步完成可展示的成果。`
-                  : "，帶你逐步完成可展示的成果。"}
-                內容涵蓋觀念說明、操作示範與常見陷阱解析，讓你能對齊職場真實情境，學完即可上手應用。
-              </p>
-            )}
-
-            <section className="mt-10" aria-labelledby="learn-heading">
-              <h2
-                id="learn-heading"
-                className="text-lg font-bold text-necva-primary"
-              >
-                你將學到
-              </h2>
-              <ul className="mt-4 space-y-3">
-                {learn.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-zinc-700">
-                    <Check
-                      className="mt-0.5 size-4 shrink-0 text-necva-accent"
-                      aria-hidden
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="mt-10" aria-labelledby="audience-heading">
-              <h2
-                id="audience-heading"
-                className="text-lg font-bold text-necva-primary"
-              >
-                適合對象
-              </h2>
-              <ul className="mt-4 space-y-3">
-                {audience.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-zinc-700">
-                    <Check
-                      className="mt-0.5 size-4 shrink-0 text-necva-primary"
-                      aria-hidden
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </article>
-
-          <aside className="lg:sticky lg:top-24">
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                限時優惠
-              </p>
-              <div className="mt-2 flex flex-wrap items-baseline gap-2">
-                {showOriginal && (
-                  <span className="text-sm text-zinc-400 line-through">
-                    {formatTwd(course.priceOriginal!)}
-                  </span>
-                )}
-                <span className="text-2xl font-bold text-necva-accent">
-                  {formatTwd(course.priceSale)}
-                </span>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  className="flex h-12 min-w-[160px] flex-1 items-center justify-center rounded-lg border-2 border-necva-primary bg-white text-sm font-semibold text-necva-primary shadow-sm transition hover:bg-necva-primary/5 sm:flex-none"
+                >
+                  加入購物車
+                </button>
+                <button
+                  type="button"
+                  className="flex h-12 min-w-[160px] flex-1 items-center justify-center rounded-lg bg-necva-primary text-sm font-semibold text-white shadow-md transition hover:bg-necva-primary/90 sm:flex-none"
+                >
+                  立即購買
+                </button>
               </div>
-              <p className="mt-1 text-xs text-zinc-400">課程 ID：{course.id}</p>
-              <button
-                type="button"
-                className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-necva-primary text-sm font-semibold text-white shadow-sm transition hover:bg-necva-primary/90"
-              >
-                立即購課
-              </button>
-              <Link
-                href="/courses"
-                className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-zinc-300 text-sm font-medium text-zinc-700 transition hover:bg-white"
-              >
-                返回課程列表
-              </Link>
             </div>
-          </aside>
+
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md">
+              <Image
+                src={course.coverImage}
+                alt={course.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 440px"
+              />
+              {course.category !== "未分類" ? (
+                <span className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  {course.category}
+                </span>
+              ) : null}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* 分頁主內容 + 側欄（參考 TibaMe 課程頁資訊欄） */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            <CourseDetailTabs
+              bodyDescription={bodyDescription}
+              heroTeaser={heroTeaser}
+              learn={learn}
+              audience={audience}
+              prerequisiteBullets={prerequisiteBullets}
+              prepareBullets={prepareBullets}
+              curriculum={curriculum}
+              announcements={announcements}
+            />
+          </div>
+          <CourseDetailSidebar course={course} stats={stats} />
+        </div>
+      </section>
     </div>
   );
 }

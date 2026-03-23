@@ -1,3 +1,4 @@
+import { AdminCourseFrontendNotice } from "@/components/admin/admin-course-frontend-notice";
 import { CourseCurriculumEditor } from "@/components/admin/course-curriculum-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,12 +46,20 @@ export default async function CourseCurriculumEditPage({ params }: PageProps) {
       title: course.title,
       subtitle: course.subtitle,
       description: course.description,
+      prerequisiteText: course.prerequisiteText,
+      preparationText: course.preparationText,
       imageUrl: course.imageUrl,
-      categoryId: course.categoryId,
+      categoryIds: course.categories.map((c) => c.id),
       price: course.price,
       discountedPrice: course.discountedPrice,
       isPublished: course.isPublished,
     },
+    announcements: course.announcements.map((a) => ({
+      id: a.id,
+      title: a.title,
+      body: a.body,
+      createdAt: a.createdAt.toISOString(),
+    })),
     sections: course.sections.map((s) => ({
       id: s.id,
       title: s.title,
@@ -79,16 +88,18 @@ export default async function CourseCurriculumEditPage({ params }: PageProps) {
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/admin/courses/${id}`} className="gap-2">
               <LayoutList className="size-4" aria-hidden />
-              基本資料表單
+              基本資料（前台文案）
             </Link>
           </Button>
         </div>
         <h1 className="text-xl font-bold text-foreground sm:text-2xl">
-          課程與單元編輯
+          課程與單元（大綱 · 公告）
         </h1>
       </div>
+      <AdminCourseFrontendNotice context="curriculum" />
       <p className="text-sm text-muted-foreground">
-        左側切換章節／課堂；變更後請按各區塊的儲存。價格不可為負；未通過驗證的項目會在側欄顯示紅色標記。
+        左側選單：<strong className="text-foreground">課程資訊</strong>（與基本資料表單相同主檔欄位）、
+        <strong className="text-foreground"> 課程公告</strong>（對外「公告」分頁）、章節／課堂（對外「大綱」）。請分區儲存。
       </p>
       <CourseCurriculumEditor initial={initial} />
     </div>

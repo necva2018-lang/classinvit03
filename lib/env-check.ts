@@ -31,7 +31,7 @@ export const ZEABUR_ENV_VARIABLES = [
   {
     name: "DATABASE_URL",
     required: true,
-    note: "PostgreSQL 連線字串（Web 與 Prisma 必用）。建置／執行階段皆需；外網 DB 請開 Public Networking。",
+    note: "PostgreSQL 連線字串。Zeabur 同專案部署時用 Web 綁定 DB 後的 Internal DATABASE_URL；本機連雲端才需 Public 連線字串。",
   },
   {
     name: "NEXT_PUBLIC_SITE_URL",

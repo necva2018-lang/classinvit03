@@ -1,8 +1,17 @@
 import { prisma } from "@/lib/db";
 
+const categoriesOrdered = {
+  categories: {
+    orderBy: [
+      { sortOrder: "asc" as const },
+      { name: "asc" as const },
+    ],
+  },
+};
+
 export async function getAdminCourseList() {
   return prisma.course.findMany({
-    include: { category: true },
+    include: categoriesOrdered,
     orderBy: { updatedAt: "desc" },
   });
 }
@@ -10,7 +19,7 @@ export async function getAdminCourseList() {
 export async function getAdminCourseById(id: string) {
   return prisma.course.findUnique({
     where: { id },
-    include: { category: true },
+    include: categoriesOrdered,
   });
 }
 
@@ -19,7 +28,10 @@ export async function getAdminCourseWithCurriculum(id: string) {
   return prisma.course.findUnique({
     where: { id },
     include: {
-      category: true,
+      ...categoriesOrdered,
+      announcements: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
       sections: {
         orderBy: { order: "asc" },
         include: {
@@ -32,6 +44,6 @@ export async function getAdminCourseWithCurriculum(id: string) {
 
 export async function getCategoriesForSelect() {
   return prisma.category.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 }

@@ -33,7 +33,17 @@ export function CourseForm({
   submitLabel,
 }: CourseFormProps) {
   return (
-    <form action={action} className="mx-auto max-w-2xl space-y-6">
+    <form action={action} className="mx-auto max-w-2xl space-y-8">
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-sm">
+        <div className="border-b border-border pb-2">
+          <h2 className="text-base font-semibold text-foreground">
+            基本與前台文案
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            下列內容會影響對外課程頁（標題區與「介紹」分頁）；請與「課程與單元」頁的「課程公告」一併維護。
+          </p>
+        </div>
+
       <div className="grid gap-2">
         <Label htmlFor="title">標題</Label>
         <Input
@@ -46,43 +56,86 @@ export function CourseForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="subtitle">副標題（選填）</Label>
+        <Label htmlFor="subtitle">副標題／摘要（選填）</Label>
         <Input
           id="subtitle"
           name="subtitle"
           defaultValue={course?.subtitle ?? ""}
-          placeholder="一句話說明課程"
+          placeholder="前台課程頁標題區的一行摘要"
         />
+        <p className="text-xs text-muted-foreground">
+          對應前台課程詳情頂部文案；完整介紹請寫在下方「課程介紹」。
+        </p>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="categoryId">分類（選填）</Label>
-        <select
-          id="categoryId"
-          name="categoryId"
-          defaultValue={course?.categoryId ?? ""}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <option value="">— 未分類 —</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <fieldset className="grid gap-2">
+        <legend className="text-sm font-medium leading-none">分類（可複選，選填）</legend>
+        <div className="space-y-2 rounded-md border border-input p-3">
+          {categories.length === 0 ? (
+            <p className="text-sm text-muted-foreground">尚無類別，請至「課程類別」建立。</p>
+          ) : (
+            categories.map((c) => (
+              <label
+                key={c.id}
+                className="flex cursor-pointer items-center gap-2 text-sm font-normal"
+              >
+                <input
+                  type="checkbox"
+                  name="categoryIds"
+                  value={c.id}
+                  defaultChecked={(course?.categoryIds ?? []).includes(c.id)}
+                  className="size-4 rounded border-input"
+                />
+                {c.name}
+              </label>
+            ))
+          )}
+        </div>
+      </fieldset>
 
       <div className="grid gap-2">
-        <Label htmlFor="description">課程介紹</Label>
+        <Label htmlFor="description">完整課程介紹（選填）</Label>
         <textarea
           id="description"
           name="description"
           rows={6}
           defaultValue={course?.description ?? ""}
           className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          placeholder="Markdown 或純文字皆可（選填）"
+          placeholder="對應前台「介紹」分頁的課程介紹全文"
         />
       </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="prerequisiteText">學習前基本能力（選填）</Label>
+        <textarea
+          id="prerequisiteText"
+          name="prerequisiteText"
+          rows={4}
+          defaultValue={course?.prerequisiteText ?? ""}
+          className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="每行一則；空白時前台顯示站方預設文案"
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="preparationText">學習前準備（選填）</Label>
+        <textarea
+          id="preparationText"
+          name="preparationText"
+          rows={4}
+          defaultValue={course?.preparationText ?? ""}
+          className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="每行一則；空白時前台顯示站方預設文案"
+        />
+      </div>
+      </section>
+
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-sm">
+        <div className="border-b border-border pb-2">
+          <h2 className="text-base font-semibold text-foreground">
+            價格、封面與上架
+          </h2>
+        </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
@@ -135,6 +188,7 @@ export function CourseForm({
           已上架（前台可見）
         </Label>
       </div>
+      </section>
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton label={submitLabel} />

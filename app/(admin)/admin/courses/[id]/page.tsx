@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Layers } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { AdminCourseFrontendNotice } from "@/components/admin/admin-course-frontend-notice";
 import { CourseForm } from "@/components/admin/course-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,12 +54,13 @@ export default async function EditCoursePage({ params }: PageProps) {
           <Button variant="outline" size="sm" asChild>
             <Link href={`/admin/courses/${id}/edit`} className="gap-2">
               <Layers className="size-4" aria-hidden />
-              課程與單元（大綱）
+              課程與單元（大綱 · 公告）
             </Link>
           </Button>
         </div>
         <h1 className="text-2xl font-bold text-foreground">編輯課程</h1>
       </div>
+      <AdminCourseFrontendNotice context="form" />
       <CourseForm
         categories={categoryOptions}
         course={courseInitial}

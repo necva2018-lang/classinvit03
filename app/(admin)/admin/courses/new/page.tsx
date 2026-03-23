@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { AdminCourseFrontendNotice } from "@/components/admin/admin-course-frontend-notice";
 import { CourseForm } from "@/components/admin/course-form";
 import { Button } from "@/components/ui/button";
 import { toCategoryFormOptions } from "@/lib/admin/course-form-serialize";
@@ -28,6 +29,7 @@ export default async function NewCoursePage() {
         </Button>
         <h1 className="text-2xl font-bold text-foreground">新增課程</h1>
       </div>
+      <AdminCourseFrontendNotice context="form" />
       <CourseForm
         categories={toCategoryFormOptions(categories)}
         action={createCourse}

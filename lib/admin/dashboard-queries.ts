@@ -24,7 +24,7 @@ function startOfCurrentMonth(): Date {
 
 /** 以「當前課程牌價／特價」估算總營收（每筆 Enrollment 計一次） */
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [enrollments, newStudentsThisMonth, categoryGroups, categories, tenMinUsers, tenMinEnrolls] =
+  const [enrollments, newStudentsThisMonth, coursesForCategories, categories, tenMinUsers, tenMinEnrolls] =
     await Promise.all([
       prisma.enrollment.findMany({
         include: {
@@ -37,11 +37,18 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
           createdAt: { gte: startOfCurrentMonth() },
         },
       }),
-      prisma.course.groupBy({
-        by: ["categoryId"],
-        _count: { id: true },
+      prisma.course.findMany({
+        select: {
+          categories: {
+            orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            select: { name: true },
+          },
+        },
       }),
-      prisma.category.findMany({ select: { id: true, name: true } }),
+      prisma.category.findMany({
+        select: { id: true, name: true, sortOrder: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      }),
       prisma.user.findMany({
         where: {
           createdAt: {
@@ -78,17 +85,25 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     totalRevenue += sale;
   }
 
-  const idToName = new Map(categories.map((c) => [c.id, c.name] as const));
   const merged = new Map<string, number>();
-  for (const g of categoryGroups) {
-    const label = g.categoryId
-      ? (idToName.get(g.categoryId) ?? "未知分類")
-      : "未分類";
-    merged.set(label, (merged.get(label) ?? 0) + g._count.id);
+  for (const row of coursesForCategories) {
+    if (row.categories.length === 0) {
+      merged.set("未分類", (merged.get("未分類") ?? 0) + 1);
+    } else {
+      for (const c of row.categories) {
+        merged.set(c.name, (merged.get(c.name) ?? 0) + 1);
+      }
+    }
   }
-  const categorySlices: CategorySlice[] = [...merged.entries()].map(
-    ([name, value]) => ({ name, value }),
-  );
+  const orderedNames = categories.map((c) => c.name);
+  const rankSlice = (name: string) => {
+    if (name === "未分類") return 100_000;
+    const i = orderedNames.indexOf(name);
+    return i === -1 ? 50_000 : i;
+  };
+  const categorySlices: CategorySlice[] = [...merged.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => rankSlice(a.name) - rankSlice(b.name));
 
   const activityRaw: { at: Date; title: string; detail: string }[] = [];
 
@@ -182,13 +197,13 @@ export function dashboardLoadHints(error: string): string[] {
     e.includes("etimedout")
   ) {
     hints.push(
-      "Zeabur 控制台 → PostgreSQL 服務 → 確認狀態為運行中，並已開啟「公網／Public」連線；請複製「外網用」Connection String 到本機 .env 的 DATABASE_URL（勿混用僅限叢集內網的 URL）。",
+      "若 Web 與 PostgreSQL 同在 Zeabur 專案：到 Web 服務確認已「綁定」PostgreSQL，Variables 的 DATABASE_URL 應為內網／Internal 字串；不必為 App 開資料庫公網。",
     );
     hints.push(
-      "連線字串若未帶 SSL，可嘗試在結尾加上 ?sslmode=require（或 Zeabur 文件建議的參數）；變更後需重啟 next dev。",
+      "若從本機連 Zeabur 資料庫：PostgreSQL 需開 Public Networking，且 .env 使用外網 Connection String；可嘗試連線字串加上 ?sslmode=require（依 Zeabur 文件）。",
     );
     hints.push(
-      "本機仍連不到：暫關 VPN／公司防火牆測試，或用 Zeabur 網頁終端機對同一 DB 執行 migrate，確認資料庫本身可連。",
+      "仍連不到：暫關 VPN／防火牆測試；並在 Zeabur Logs 對照錯誤與 digest。",
     );
   }
 

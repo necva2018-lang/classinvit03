@@ -1,7 +1,9 @@
+import { AdminCourseFrontendNotice } from "@/components/admin/admin-course-frontend-notice";
 import {
   CoursesDataTable,
   NewCourseButton,
 } from "@/components/admin/courses-data-table";
+import { formatCourseCategoryLabels } from "@/lib/admin/course-form-serialize";
 import { getAdminCourseList } from "@/lib/admin/courses-server";
 import { isDatabaseConfigured } from "@/lib/env";
 import type { Metadata } from "next";
@@ -39,7 +41,7 @@ export default async function AdminCoursesPage() {
   const data = rows.map((r) => ({
     id: r.id,
     title: r.title,
-    categoryName: r.category?.name ?? "未分類",
+    categoryName: formatCourseCategoryLabels(r.categories),
     price: r.price,
     discountedPrice: r.discountedPrice,
     isPublished: r.isPublished,
@@ -59,6 +61,7 @@ export default async function AdminCoursesPage() {
         </div>
         <NewCourseButton />
       </div>
+      <AdminCourseFrontendNotice context="list" />
       <CoursesDataTable data={data} />
     </div>
   );
