@@ -1,0 +1,62 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+Desktop.ini
+
+# IDE（若需共用設定可改為追蹤 .vscode/extensions.json）
+.idea/
+.cursor/
+
+# Prisma（本機 SQLite 實驗用，此專案預設為 PostgreSQL）
+*.db
+*.db-journal
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# 機密環境變數（含 DATABASE_URL 資料庫密碼、AUTH_SECRET 等）— 絕對勿提交至 GitHub
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# 其餘自訂 .env.* 一併忽略；範本檔可提交
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# 本機上傳的輪播圖（保留目錄結構請用 .gitkeep）
+/public/uploads/banners/*
+!/public/uploads/banners/.gitkeep

@@ -1,0 +1,10 @@
+# Zeabur（zbpack）建置 Docker 映像時縮小傳輸內容
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+*.log
+coverage
+.DS_Store

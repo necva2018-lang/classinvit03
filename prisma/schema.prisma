@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 使用者與權限管理
+model User {
+  id          String   @id @default(cuid())
+  name        String?
+  email       String?  @unique
+  image       String?
+  role        Role     @default(STUDENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  enrollments Enrollment[]
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  INSTRUCTOR
+}
+
+enum CourseStatus {
+  DRAFT
+  PAUSED
+}
+
+// 課程分類 (如：人工智慧、網頁前端)
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  /// 排序權重（數字越小越前；導覽與下拉選單依此欄位）
+  sortOrder Int      @default(0) @map("category_sort_order")
+  courses   Course[]
+}
+
+// 課程主體
+model Course {
+  id              String   @id @default(cuid())
+  title           String
+  subtitle        String?  @db.Text
+  description     String?  @db.Text
+  /// 前台「學習前基本能力」：每行一則，空白則顯示站方預設
+  prerequisiteText String? @db.Text @map("course_prerequisite_text")
+  /// 前台「學習前準備」：每行一則
+  preparationText  String? @db.Text @map("course_preparation_text")
+  /// 前台 CTA：加入購物車（或自訂）按鈕文字
+  ctaCartText     String?  @db.Text @map("course_cta_cart_text")
+  /// 前台 CTA：加入購物車（或自訂）按鈕連結
+  ctaCartUrl      String?  @db.Text @map("course_cta_cart_url")
+  /// 前台 CTA：立即購買（或自訂）按鈕文字
+  ctaBuyText      String?  @db.Text @map("course_cta_buy_text")
+  /// 前台 CTA：立即購買（或自訂）按鈕連結
+  ctaBuyUrl       String?  @db.Text @map("course_cta_buy_url")
+  /// 後台營運狀態（草稿／暫停）
+  status          CourseStatus @default(DRAFT) @map("course_status")
+  imageUrl        String?  @db.Text
+  price           Float?
+  discountedPrice Float?
+  isPublished     Boolean  @default(false)
+
+  categories Category[]
+
+  sections       Section[]
+  enrollments    Enrollment[]
+  announcements  CourseAnnouncement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// 前台「公告」分頁
+model CourseAnnouncement {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?  @db.Text
+  sortOrder Int      @default(0) @map("announcement_sort_order")
+  createdAt DateTime @default(now())
+
+  @@index([courseId])
+}
+
+// 課程章節 (如：第一章：環境架設)
+model Section {
+  id       String @id @default(cuid())
+  title    String
+  /// 排序權重（數字越小越前）
+  order    Int    @map("section_order")
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+}
+
+// 課堂內容 (如：1-1 安裝 VS Code)
+model Lesson {
+  id        String  @id @default(cuid())
+  title     String
+  videoUrl  String? @db.Text
+  duration  Int?
+  order     Int     @map("lesson_order")
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
+
+// 首頁輪播 Banner
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?  @db.Text
+  imageUrl  String   @db.Text
+  linkUrl   String?  @db.Text
+  linkLabel String?
+  order     Int      @default(0) @map("banner_order")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 全站鍵值設定（如 site_name、SEO、聯絡資訊）
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+// 訂單/購買紀錄
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+}

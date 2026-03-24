@@ -1,0 +1,22 @@
+# 本機 PostgreSQL（與 .env.example 內 DATABASE_URL 範例一致）
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: classinvit
+      POSTGRES_PASSWORD: classinvit_local
+      POSTGRES_DB: classinvit
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classinvit -d classinvit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
