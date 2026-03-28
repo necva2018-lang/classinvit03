@@ -71,6 +71,10 @@ export async function saveCourseMeta(
           infoStructureText: d.infoStructureText ?? null,
           infoResourcesText: d.infoResourcesText ?? null,
           infoCertificateText: d.infoCertificateText ?? null,
+          listingNoInstructorLine: d.listingNoInstructorLine ?? null,
+          listingNoReviewsLine: d.listingNoReviewsLine ?? null,
+          imageUrl: d.imageUrl ?? null,
+          introBlocksJson: d.introBlocks,
           categories: {
             set: (d.categoryIds ?? []).map((id) => ({ id })),
           },
@@ -86,7 +90,10 @@ export async function saveCourseMeta(
           infoStructureText: d.infoStructureText ?? null,
           infoResourcesText: d.infoResourcesText ?? null,
           infoCertificateText: d.infoCertificateText ?? null,
+          listingNoInstructorLine: d.listingNoInstructorLine ?? null,
+          listingNoReviewsLine: d.listingNoReviewsLine ?? null,
           imageUrl: d.imageUrl ?? null,
+          introBlocksJson: d.introBlocks,
           categories: {
             set: (d.categoryIds ?? []).map((id) => ({ id })),
           },

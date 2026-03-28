@@ -28,6 +28,7 @@ export default async function AdminBannersPage() {
       title: r.title,
       subtitle: r.subtitle,
       imageUrl: r.imageUrl,
+      videoUrl: r.videoUrl,
       linkUrl: r.linkUrl,
       linkLabel: r.linkLabel,
       order: r.order,

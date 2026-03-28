@@ -235,14 +235,14 @@ export function CourseForm({
         />
       </div>
 
-      <div className="grid gap-4 rounded-md border border-dashed border-border bg-muted/30 p-4">
-        <div>
+      <div className="grid w-full min-w-0 gap-4 rounded-md border border-dashed border-border bg-muted/30 p-4">
+        <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">
             前台側欄 · 課程資訊（選填）
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
             對應課程頁右側「課程資訊」區塊。每欄空白則前台不顯示該列；四欄皆空白則不顯示整塊。
-            前台 CTA 為「補助課」時，此區塊不會顯示（文案仍會儲存，改回購物車後即生效）。
+            不分購物車或補助課，有填寫的列皆會顯示於前台。
           </p>
         </div>
         <div className="grid gap-2">
@@ -385,8 +385,7 @@ export function CourseForm({
           </h2>
           {isSubsidyCta ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              前台 CTA 為「補助課」時，此區不適用：儲存後不會寫入定價、特價、封面與本頁的上架勾選（資料庫內舊值保留但不影響前台）。
-              補助課若要對外上架，請至「課程與單元」→ 課程資訊使用「已上架」。
+              前台 CTA 為「補助課」時，定價與特價欄位停用且不會寫入；封面圖與「已上架」仍會儲存並影響前台。
             </p>
           ) : null}
         </div>
@@ -395,44 +394,46 @@ export function CourseForm({
         disabled={!courseUsesCommerceListingFields(ctaKind)}
         className="min-w-0 space-y-4 border-0 p-0 disabled:pointer-events-none disabled:opacity-60"
       >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="price">定價（NT$，可含小數）</Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={course?.price ?? ""}
-            placeholder="原價／牌價"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="price">定價（NT$，可含小數）</Label>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={course?.price ?? ""}
+              placeholder="原價／牌價"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="discountedPrice">特價（選填）</Label>
+            <Input
+              id="discountedPrice"
+              name="discountedPrice"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={course?.discountedPrice ?? ""}
+              placeholder="無特價可留空"
+            />
+          </div>
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="discountedPrice">特價（選填）</Label>
-          <Input
-            id="discountedPrice"
-            name="discountedPrice"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={course?.discountedPrice ?? ""}
-            placeholder="無特價可留空"
-          />
-        </div>
-      </div>
+      </fieldset>
 
       <div className="grid gap-2">
         <Label htmlFor="imageUrl">封面圖 URL（選填）</Label>
         <Input
           id="imageUrl"
           name="imageUrl"
-          type="url"
+          type="text"
+          inputMode="url"
+          autoComplete="off"
           defaultValue={course?.imageUrl ?? ""}
           placeholder="https://…"
         />
       </div>
-      </fieldset>
 
       <div className="flex items-center gap-2">
         <input
@@ -441,7 +442,7 @@ export function CourseForm({
           type="checkbox"
           value="on"
           checked={isPublished}
-          disabled={isPublishDisabled || isSubsidyCta}
+          disabled={isPublishDisabled}
           onChange={(e) => setIsPublished(e.target.checked)}
           className="size-4 rounded border-input"
         />

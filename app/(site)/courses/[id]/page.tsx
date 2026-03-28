@@ -117,6 +117,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
     course,
     subtitle,
     bodyDescription,
+    introBlocks,
     curriculum,
     learnOutcomesText,
     targetAudienceText,
@@ -289,6 +290,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
             <CourseDetailTabs
               bodyDescription={bodyDescription}
               heroTeaser={heroTeaser}
+              introBlocks={introBlocks}
               learn={learn}
               audience={audience}
               prerequisiteBullets={prerequisiteBullets}

@@ -2,11 +2,15 @@
 
 import "./hero-swiper.css";
 
+import {
+  isBannerVideoUrl,
+  resolveBannerBackgroundMedia,
+} from "@/lib/banner-video-embed";
 import type { HeroBannerPublic } from "@/lib/types/hero-banner";
 import { ArrowRight, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { A11y, Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -24,7 +28,7 @@ type GradientSlide = {
   gradient: string;
 };
 
-type DbSlide = { kind: "image" } & HeroBannerPublic;
+type DbSlide = { kind: "db" } & HeroBannerPublic;
 
 type Slide = GradientSlide | DbSlide;
 
@@ -80,7 +84,106 @@ const FALLBACK_SLIDES: GradientSlide[] = [
 ];
 
 function toDbSlides(banners: HeroBannerPublic[]): DbSlide[] {
-  return banners.map((b) => ({ kind: "image" as const, ...b }));
+  return banners.map((b) => ({ kind: "db" as const, ...b }));
+}
+
+function BannerBackgroundMedia({
+  imageUrl,
+  videoUrl,
+  imageAlt,
+  reduceMotion,
+}: {
+  imageUrl: string | null;
+  videoUrl: string | null;
+  imageAlt: string;
+  reduceMotion: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const showVideo = isBannerVideoUrl(videoUrl);
+  const src = videoUrl?.trim() ?? "";
+  const poster = imageUrl?.trim() || undefined;
+  const imgSrc = imageUrl?.trim() ?? "";
+
+  const resolved = useMemo(
+    () =>
+      showVideo && src
+        ? resolveBannerBackgroundMedia(src, reduceMotion)
+        : null,
+    [showVideo, src, reduceMotion],
+  );
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || resolved?.mode !== "video") return;
+    if (reduceMotion) {
+      el.pause();
+      el.autoplay = false;
+      return;
+    }
+    el.muted = true;
+    void el.play().catch(() => {});
+  }, [resolved, reduceMotion, src]);
+
+  if (showVideo && resolved?.mode === "iframe") {
+    return (
+      <div className="absolute inset-0 overflow-hidden" aria-hidden>
+        <iframe
+          key={resolved.src}
+          title=""
+          src={resolved.src}
+          className="pointer-events-none absolute left-1/2 top-1/2 min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0"
+          style={{
+            width: "177.78vh",
+            height: "100%",
+            minWidth: "100%",
+            minHeight: "56.25vw",
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen={false}
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    );
+  }
+
+  if (showVideo && resolved?.mode === "video") {
+    return (
+      <video
+        ref={videoRef}
+        className="absolute inset-0 size-full object-cover"
+        src={resolved.src}
+        poster={poster}
+        muted
+        loop
+        playsInline
+        autoPlay={!reduceMotion}
+        preload="metadata"
+        aria-hidden
+      />
+    );
+  }
+
+  if (imgSrc) {
+    return (
+      <Image
+        src={imgSrc}
+        alt={imageAlt}
+        fill
+        priority
+        className="object-cover"
+        sizes="100vw"
+        unoptimized
+      />
+    );
+  }
+
+  return (
+    <div
+      className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950"
+      aria-hidden
+    />
+  );
 }
 
 type Props = {
@@ -177,14 +280,11 @@ export function HeroSwiper({ dbBanners = [] }: Props) {
               </div>
             ) : (
               <div className="relative flex min-h-[min(78dvh,36rem)] items-center sm:min-h-[min(82dvh,40rem)] lg:min-h-[min(85dvh,44rem)]">
-                <Image
-                  src={s.imageUrl}
-                  alt={s.title}
-                  fill
-                  priority
-                  className="object-cover"
-                  sizes="100vw"
-                  unoptimized
+                <BannerBackgroundMedia
+                  imageUrl={s.imageUrl}
+                  videoUrl={s.videoUrl}
+                  imageAlt={s.title}
+                  reduceMotion={reduceMotion}
                 />
                 <div
                   className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/25"

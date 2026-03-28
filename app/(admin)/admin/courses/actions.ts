@@ -100,8 +100,8 @@ export async function createCourse(formData: FormData) {
       ? {
           price: null as number | null,
           discountedPrice: null as number | null,
-          imageUrl: null as string | null,
-          isPublished: false,
+          imageUrl,
+          isPublished,
         }
       : {
           imageUrl,
@@ -131,6 +131,7 @@ export async function createCourse(formData: FormData) {
       ctaBuyText,
       ctaBuyUrl,
       ...commerceData,
+      introBlocksJson: [],
       categories:
         categoryIds.length > 0
           ? { connect: categoryIds.map((id) => ({ id })) }
@@ -211,7 +212,11 @@ export async function updateCourse(courseId: string, formData: FormData) {
 
   const data =
     ctaKind === "SUBSIDY"
-      ? baseUpdate
+      ? {
+          ...baseUpdate,
+          imageUrl,
+          isPublished,
+        }
       : {
           ...baseUpdate,
           imageUrl,
@@ -291,7 +296,10 @@ export async function duplicateCourse(courseId: string) {
       ctaCartUrl: source.ctaCartUrl,
       ctaBuyText: source.ctaBuyText,
       ctaBuyUrl: source.ctaBuyUrl,
+      listingNoInstructorLine: source.listingNoInstructorLine,
+      listingNoReviewsLine: source.listingNoReviewsLine,
       imageUrl: source.imageUrl,
+      introBlocksJson: (source as { introBlocksJson?: unknown }).introBlocksJson ?? [],
       price: source.price,
       discountedPrice: source.discountedPrice,
       isPublished: false,

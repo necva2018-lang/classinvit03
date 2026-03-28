@@ -2,6 +2,8 @@ import { mapPrismaCourse } from "@/lib/course-mapper";
 import { prisma } from "@/lib/db";
 import { isDatabaseConfigured } from "@/lib/env";
 import { isLikelyDbId } from "@/lib/id-guard";
+import type { IntroBlock } from "@/lib/validation/intro-blocks";
+import { parseIntroBlocksFromJson } from "@/lib/validation/intro-blocks";
 import type { Course } from "@/lib/types/course";
 
 const courseInclude = {
@@ -71,6 +73,8 @@ export type SiteCourseDetailPayload = {
   subtitle: string | null;
   /** 完整課程介紹（Prisma description） */
   bodyDescription: string | null;
+  /** 課程頁第一分頁「說明區段」（圖片／影片／文字） */
+  introBlocks: IntroBlock[];
   learnOutcomesText: string | null;
   targetAudienceText: string | null;
   prerequisiteText: string | null;
@@ -92,6 +96,7 @@ function buildDetailPayload(row: {
   infoStructureText?: string | null;
   infoResourcesText?: string | null;
   infoCertificateText?: string | null;
+  introBlocksJson?: unknown;
   announcements: {
     id: string;
     title: string;
@@ -114,6 +119,7 @@ function buildDetailPayload(row: {
   SiteCourseDetailPayload,
   | "subtitle"
   | "bodyDescription"
+  | "introBlocks"
   | "learnOutcomesText"
   | "targetAudienceText"
   | "prerequisiteText"
@@ -154,6 +160,9 @@ function buildDetailPayload(row: {
   return {
     subtitle: row.subtitle,
     bodyDescription: row.description,
+    introBlocks: parseIntroBlocksFromJson(
+      (row as { introBlocksJson?: unknown }).introBlocksJson,
+    ),
     learnOutcomesText: row.learnOutcomesText,
     targetAudienceText: row.targetAudienceText,
     prerequisiteText: row.prerequisiteText,

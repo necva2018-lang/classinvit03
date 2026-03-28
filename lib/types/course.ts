@@ -22,4 +22,8 @@ export type Course = {
   ctaCartUrl: string | null;
   ctaBuyText: string | null;
   ctaBuyUrl: string | null;
+  /** 列表卡片無講師時副行（null／空則用站內預設） */
+  listingNoInstructorLine: string | null;
+  /** 列表卡片尚無評價時說明（null／空則用站內預設） */
+  listingNoReviewsLine: string | null;
 };

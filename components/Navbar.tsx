@@ -4,6 +4,7 @@ import { CourseMegaMenu } from "@/components/navbar/CourseMegaMenu";
 import { MobileNavDrawer } from "@/components/navbar/MobileNavDrawer";
 import { NavSearchForm } from "@/components/navbar/NavSearchForm";
 import type { NavCategoryLink } from "@/lib/category-nav-links";
+import { cn } from "@/lib/utils";
 import { ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -11,9 +12,18 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type Props = {
   categories: NavCategoryLink[];
+  /** 全站設定 site_logo_url（已驗證為 https） */
+  logoUrl?: string | null;
+  logoAlt?: string | null;
+  siteName?: string | null;
 };
 
-export function Navbar({ categories }: Props) {
+export function Navbar({
+  categories,
+  logoUrl = null,
+  logoAlt = null,
+  siteName = null,
+}: Props) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("q") ?? "";
 
@@ -26,6 +36,13 @@ export function Navbar({ categories }: Props) {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const prevMobileOpen = useRef(false);
   const panelId = useId();
+  const logoImageAlt = (logoAlt?.trim() || siteName?.trim() || "首頁").slice(
+    0,
+    120,
+  );
+  const showLogoImage = Boolean(logoUrl);
+  const textLogoLabel =
+    siteName?.trim().slice(0, 12) || "Logo";
 
   const closeMega = useCallback(() => setMegaOpen(false), []);
   const closeMobile = useCallback(() => {
@@ -132,10 +149,24 @@ export function Navbar({ categories }: Props) {
           <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="flex h-9 shrink-0 items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 transition hover:border-necva-primary/40 hover:bg-necva-primary/5 hover:text-necva-primary sm:h-10 sm:px-4"
+              className={cn(
+                "flex h-9 max-w-[min(200px,42vw)] shrink-0 items-center justify-center rounded-md transition sm:h-10",
+                showLogoImage
+                  ? "bg-transparent px-0"
+                  : "border border-dashed border-zinc-300 bg-zinc-50 px-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 hover:border-necva-primary/40 hover:bg-necva-primary/5 hover:text-necva-primary sm:px-4",
+              )}
               onClick={closeMobile}
             >
-              Logo
+              {showLogoImage && logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- LOGO 來自全站設定，圖床不限
+                <img
+                  src={logoUrl}
+                  alt={logoImageAlt}
+                  className="h-8 w-auto max-w-[min(160px,40vw)] object-contain object-left sm:h-9"
+                />
+              ) : (
+                <span className="truncate">{textLogoLabel}</span>
+              )}
             </Link>
 
             <div className="relative hidden lg:block">

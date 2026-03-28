@@ -22,6 +22,7 @@ export async function saveSiteSettings(
       });
     }
 
+    revalidatePath("/", "layout");
     revalidatePath("/");
     revalidatePath("/admin/settings");
 

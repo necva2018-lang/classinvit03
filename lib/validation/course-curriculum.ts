@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { introBlocksArraySchema } from "@/lib/validation/intro-blocks";
+
 const nonNegOrNull = z.union([z.number().nonnegative(), z.null()]);
 
 /** 課程主檔（深度編輯右欄） */
@@ -13,7 +15,12 @@ export const courseCurriculumCourseSchema = z.object({
   infoStructureText: z.string().nullable().optional(),
   infoResourcesText: z.string().nullable().optional(),
   infoCertificateText: z.string().nullable().optional(),
+  /** 列表卡片無講師時副行（留空則前台用預設） */
+  listingNoInstructorLine: z.string().nullable().optional(),
+  /** 列表卡片尚無評價時說明（留空則前台用預設） */
+  listingNoReviewsLine: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
+  introBlocks: introBlocksArraySchema.default([]),
   categoryIds: z.array(z.string().min(1)).default([]),
   price: nonNegOrNull.optional(),
   discountedPrice: nonNegOrNull.optional(),

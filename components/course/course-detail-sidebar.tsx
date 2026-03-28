@@ -27,14 +27,12 @@ export function CourseDetailSidebar({ course, infoSidebarTexts }: Props) {
     course.priceOriginal > course.priceSale;
   const cta = resolveCourseCtaPair(course);
 
-  const showInfoCard =
-    showCommerce &&
-    [
-      infoSidebarTexts.durationText,
-      infoSidebarTexts.structureText,
-      infoSidebarTexts.resourcesText,
-      infoSidebarTexts.certificateText,
-    ].some((t) => t?.trim());
+  const showInfoCard = [
+    infoSidebarTexts.durationText,
+    infoSidebarTexts.structureText,
+    infoSidebarTexts.resourcesText,
+    infoSidebarTexts.certificateText,
+  ].some((t) => t?.trim());
 
   const infoRows: {
     key: string;
@@ -88,9 +86,9 @@ export function CourseDetailSidebar({ course, infoSidebarTexts }: Props) {
                   className="mt-0.5 size-5 shrink-0 text-necva-primary"
                   aria-hidden
                 />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-zinc-800">{label}</p>
-                  <p className="mt-0.5 whitespace-pre-line text-zinc-600">
+                  <p className="mt-0.5 whitespace-pre-line break-words text-zinc-600">
                     {value}
                   </p>
                 </div>

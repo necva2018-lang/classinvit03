@@ -92,6 +92,9 @@ export default async function EditCoursePage({ params }: PageProps) {
           </p>
         ) : null}
       </section>
+      <p className="text-xs text-muted-foreground">
+        列表卡片兩行文案（無講師副行、尚無評價說明）請至「課程與單元」→ 左側「課程資訊」編輯並按「儲存課程」。
+      </p>
       <CourseForm
         categories={categoryOptions}
         course={courseInitial}

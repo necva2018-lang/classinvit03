@@ -7,8 +7,8 @@ export function normalizeCourseCtaKind(v: unknown): CourseCtaKind {
 }
 
 /**
- * 補助課不使用「定價／特價／封面圖」於前台與後台主表單；
- * 基本資料表單中「已上架」一併停用（改由「課程與單元」頁調整上架）。
+ * 補助課不使用「定價／特價」（後台價格區會停用）；
+ * 「封面圖 URL」「已上架」不分 CTA 類型，一律可編輯並寫入資料庫。
  */
 export function courseUsesCommerceListingFields(
   kind: CourseCtaKind | null | undefined,

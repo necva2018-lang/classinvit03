@@ -20,7 +20,7 @@ const actions = [
   {
     href: "/admin/settings",
     label: "修改首頁公告",
-    description: "全站設定與頁尾／SEO 文案",
+    description: "全站設定、LOGO、頁尾與 SEO 文案",
     icon: Megaphone,
     variant: "outline" as const,
   },

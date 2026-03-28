@@ -1,11 +1,23 @@
 "use client";
 
+import {
+  CourseIntroBlocks,
+  introBlocksHaveVisibleContent,
+} from "@/components/course/course-intro-blocks";
 import type {
   SiteCourseCurriculumSection,
   SiteCoursePublicAnnouncement,
 } from "@/lib/courses-queries";
+import type { IntroBlock } from "@/lib/validation/intro-blocks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, ChevronDown, ListTree, Megaphone, ScrollText } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  LayoutTemplate,
+  ListTree,
+  Megaphone,
+  ScrollText,
+} from "lucide-react";
 import { useState } from "react";
 
 function formatLessonDuration(sec: number | null): string | null {
@@ -18,6 +30,7 @@ function formatLessonDuration(sec: number | null): string | null {
 type Props = {
   bodyDescription: string | null;
   heroTeaser: string | null;
+  introBlocks: IntroBlock[];
   learn: string[];
   audience: string[];
   prerequisiteBullets: string[];
@@ -29,6 +42,7 @@ type Props = {
 export function CourseDetailTabs({
   bodyDescription,
   heroTeaser,
+  introBlocks,
   learn,
   audience,
   prerequisiteBullets,
@@ -36,7 +50,7 @@ export function CourseDetailTabs({
   curriculum,
   announcements,
 }: Props) {
-  const [tab, setTab] = useState("intro");
+  const [tab, setTab] = useState("blocks");
 
   const introBody =
     bodyDescription?.trim() || heroTeaser?.trim() || null;
@@ -45,7 +59,8 @@ export function CourseDetailTabs({
   const hasAudience = audience.length > 0;
   const hasPrerequisite = prerequisiteBullets.length > 0;
   const hasPrepare = prepareBullets.length > 0;
-  const hasAnyIntroBlock =
+  const hasIntroBlocks = introBlocksHaveVisibleContent(introBlocks);
+  const hasIntroTabContent =
     hasCourseIntro ||
     hasLearn ||
     hasAudience ||
@@ -55,6 +70,13 @@ export function CourseDetailTabs({
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
       <TabsList className="h-auto w-full justify-start gap-0 rounded-none border-b border-zinc-200 bg-transparent p-0 text-zinc-500">
+        <TabsTrigger
+          value="blocks"
+          className="relative rounded-none border-b-2 border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-zinc-600 shadow-none data-[state=active]:border-necva-primary data-[state=active]:bg-transparent data-[state=active]:text-necva-primary data-[state=active]:shadow-none sm:px-5"
+        >
+          <LayoutTemplate className="mr-2 size-4 opacity-80" aria-hidden />
+          說明區段
+        </TabsTrigger>
         <TabsTrigger
           value="intro"
           className="relative rounded-none border-b-2 border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-zinc-600 shadow-none data-[state=active]:border-necva-primary data-[state=active]:bg-transparent data-[state=active]:text-necva-primary data-[state=active]:shadow-none sm:px-5"
@@ -78,11 +100,23 @@ export function CourseDetailTabs({
         </TabsTrigger>
       </TabsList>
 
+      <TabsContent value="blocks" className="mt-6 focus-visible:ring-0">
+        <section className="space-y-8">
+          {hasIntroBlocks ? (
+            <CourseIntroBlocks blocks={introBlocks} showTitle={false} />
+          ) : (
+            <p className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-10 text-center text-sm text-zinc-500">
+              尚未建立說明區段。講師可於後台「課程與單元」→ 課程資訊 → 說明區段新增圖片、影片或文字區塊。
+            </p>
+          )}
+        </section>
+      </TabsContent>
+
       <TabsContent value="intro" className="mt-6 focus-visible:ring-0">
         <section className="space-y-8">
-          {!hasAnyIntroBlock ? (
+          {!hasIntroTabContent ? (
             <p className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-10 text-center text-sm text-zinc-500">
-              尚未提供介紹內容。講師可於後台「編輯課程」補上課程介紹與相關欄位。
+              尚未提供文字介紹。可於後台「課程與單元」→ 課程資訊補上課程介紹、學習重點與相關欄位；圖文請使用第一個分頁「說明區段」。
             </p>
           ) : null}
 

@@ -2,7 +2,7 @@ import {
   COURSE_FILTER_OPTIONS,
   type CourseFilterTagId,
 } from "@/lib/course-filters";
-import { COURSE_COVER_PLACEHOLDER } from "@/lib/course-cover-placeholder";
+import { resolveCourseCoverImageUrl } from "@/lib/course-cover-image";
 import { courseUsesCommerceListingFields, type CourseCtaKind } from "@/lib/course-cta";
 import type { Course } from "@/lib/types/course";
 import type { Category, Course as PrismaCourse } from "@prisma/client";
@@ -41,9 +41,7 @@ export function mapPrismaCourse(row: CourseWithCategories): Course {
     priceSale: useCommerce ? Math.round(sale) : 0,
     priceOriginal:
       useCommerce && hasDiscount ? Math.round(list!) : null,
-    coverImage: useCommerce
-      ? row.imageUrl?.trim() || COURSE_COVER_PLACEHOLDER
-      : COURSE_COVER_PLACEHOLDER,
+    coverImage: resolveCourseCoverImageUrl(row.imageUrl),
     category: categoryLabel,
     rating: 0,
     reviewCount: 0,
@@ -56,5 +54,7 @@ export function mapPrismaCourse(row: CourseWithCategories): Course {
     ctaCartUrl: row.ctaCartUrl ?? null,
     ctaBuyText: row.ctaBuyText ?? null,
     ctaBuyUrl: row.ctaBuyUrl ?? null,
+    listingNoInstructorLine: row.listingNoInstructorLine ?? null,
+    listingNoReviewsLine: row.listingNoReviewsLine ?? null,
   };
 }

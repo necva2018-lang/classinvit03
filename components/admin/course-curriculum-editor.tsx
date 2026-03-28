@@ -16,6 +16,7 @@ import {
   type CourseSectionDraftInput,
   type CourseTreeDrafts,
 } from "@/lib/validation/course-curriculum";
+import { CourseIntroBlocksEditor } from "@/components/admin/course-intro-blocks-editor";
 import { CourseAnnouncementsPanel } from "@/components/admin/course-announcements-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
   ChevronRight,
   Clapperboard,
   GraduationCap,
+  LayoutTemplate,
   Layers,
   Megaphone,
   Plus,
@@ -72,6 +74,7 @@ export type CurriculumEditorInitial = {
 
 type Selection =
   | { kind: "course" }
+  | { kind: "introBlocks" }
   | { kind: "announcements" }
   | { kind: "section"; id: string }
   | { kind: "lesson"; id: string; sectionId: string };
@@ -90,7 +93,14 @@ function buildDrafts(data: CurriculumEditorInitial): CourseTreeDrafts {
       };
     }
   }
-  return { course: { ...data.course }, sections, lessons };
+  return {
+    course: {
+      ...data.course,
+      introBlocks: data.course.introBlocks ?? [],
+    },
+    sections,
+    lessons,
+  };
 }
 
 function WarningDot({ show }: { show: boolean }) {
@@ -208,6 +218,21 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
           >
             <GraduationCap className="size-4 shrink-0 opacity-80" aria-hidden />
             <span className="min-w-0 flex-1 truncate font-medium">課程資訊</span>
+            <WarningDot show={invalidIds.has(initial.courseId)} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelection({ kind: "introBlocks" })}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
+              selection.kind === "introBlocks"
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted",
+            )}
+          >
+            <LayoutTemplate className="size-4 shrink-0 opacity-80" aria-hidden />
+            <span className="min-w-0 flex-1 truncate font-medium">說明區段</span>
             <WarningDot show={invalidIds.has(initial.courseId)} />
           </button>
 
@@ -454,6 +479,46 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 placeholder="空白則前台使用站方預設"
               />
             </div>
+
+            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  列表卡片文案
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  用於首頁「熱門課程」與「全部課程」卡片標題下方。留空則使用站內預設字句。
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="c-list-no-inst">無講師時副行（選填）</Label>
+                <Input
+                  id="c-list-no-inst"
+                  value={course.listingNoInstructorLine ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      listingNoInstructorLine:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  placeholder="預設：線上影音課程"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="c-list-no-rev">尚無評價時說明（選填）</Label>
+                <Input
+                  id="c-list-no-rev"
+                  value={course.listingNoReviewsLine ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      listingNoReviewsLine:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  placeholder="預設：評價將於課程上架後陸續開放"
+                />
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <Label>分類（可複選）</Label>
               <div className="space-y-2 rounded-md border border-input p-3">
@@ -487,10 +552,15 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 )}
               </div>
             </div>
-            <div className="grid gap-4 rounded-md border border-dashed border-border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-foreground">
-                前台側欄 · 課程資訊（選填）
-              </p>
+            <div className="grid w-full min-w-0 gap-4 rounded-md border border-dashed border-border bg-muted/30 p-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-foreground">
+                  前台側欄 · 課程資訊（選填）
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  有填寫的列會顯示於課程頁右側（購物車／補助課皆同）。
+                </p>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="c-info-dur">課程時長</Label>
                 <textarea
@@ -552,59 +622,61 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 />
               </div>
             </div>
+
             {isSubsidyCta ? (
               <p className="text-xs text-muted-foreground">
-                此課程為「補助課」：定價、特價與封面請於基本資料改為「購物車」後再編輯；儲存時也不會覆寫資料庫中的這些欄位。
+                此課程為「補助課」：定價與特價欄位停用；封面與「已上架」可在此頁編輯並會一併儲存。
               </p>
             ) : null}
             <fieldset
               disabled={isSubsidyCta}
               className="min-w-0 space-y-4 border-0 p-0 disabled:pointer-events-none disabled:opacity-60"
             >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="c-price">定價（不可為負）</Label>
-                <Input
-                  id="c-price"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={course.price ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") {
-                      updateCourse({ price: null });
-                      return;
-                    }
-                    const n = Number.parseFloat(v);
-                    updateCourse({
-                      price: Number.isFinite(n) ? n : null,
-                    });
-                  }}
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="c-price">定價（不可為負）</Label>
+                  <Input
+                    id="c-price"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={course.price ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        updateCourse({ price: null });
+                        return;
+                      }
+                      const n = Number.parseFloat(v);
+                      updateCourse({
+                        price: Number.isFinite(n) ? n : null,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="c-sale">特價（不可為負）</Label>
+                  <Input
+                    id="c-sale"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={course.discountedPrice ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        updateCourse({ discountedPrice: null });
+                        return;
+                      }
+                      const n = Number.parseFloat(v);
+                      updateCourse({
+                        discountedPrice: Number.isFinite(n) ? n : null,
+                      });
+                    }}
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="c-sale">特價（不可為負）</Label>
-                <Input
-                  id="c-sale"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={course.discountedPrice ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") {
-                      updateCourse({ discountedPrice: null });
-                      return;
-                    }
-                    const n = Number.parseFloat(v);
-                    updateCourse({
-                      discountedPrice: Number.isFinite(n) ? n : null,
-                    });
-                  }}
-                />
-              </div>
-            </div>
+            </fieldset>
             <div className="grid gap-2">
               <Label htmlFor="c-img">封面圖 URL</Label>
               <Input
@@ -617,7 +689,6 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 }
               />
             </div>
-            </fieldset>
             <div className="flex items-center gap-2">
               <input
                 id="c-pub"
@@ -642,6 +713,38 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
             {invalidIds.has(initial.courseId) ? (
               <p className="text-xs text-destructive">
                 請修正驗證錯誤後再儲存（標題必填、價格不可為負）。
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {selection.kind === "introBlocks" ? (
+          <div className="mx-auto max-w-xl space-y-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ChevronRight className="size-4" aria-hidden />
+              <h2 className="text-lg font-semibold text-foreground">說明區段</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              顯示於前台課程頁第一個分頁「說明區段」；區塊順序可於各卡上移／下移。圖片與影片網址需為
+              http(s)。
+            </p>
+            <CourseIntroBlocksEditor
+              blocks={course.introBlocks ?? []}
+              onChange={(introBlocks) => updateCourse({ introBlocks })}
+              disabled={pending}
+            />
+            <Button
+              type="button"
+              disabled={pending || invalidIds.has(initial.courseId)}
+              onClick={() =>
+                runSave(() => saveCourseMeta(initial.courseId, drafts.course))
+              }
+            >
+              儲存說明區段
+            </Button>
+            {invalidIds.has(initial.courseId) ? (
+              <p className="text-xs text-destructive">
+                請修正驗證錯誤後再儲存（含課程標題與本區網址格式等）。
               </p>
             ) : null}
           </div>

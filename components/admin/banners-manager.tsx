@@ -6,6 +6,10 @@ import {
   saveBanner,
   toggleBannerActive,
 } from "@/lib/admin/banner-actions";
+import {
+  isBannerVideoUrl,
+  resolveBannerBackgroundMedia,
+} from "@/lib/banner-video-embed";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Film, Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -35,7 +39,8 @@ export type AdminBannerRow = {
   id: string;
   title: string;
   subtitle: string | null;
-  imageUrl: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
   linkUrl: string | null;
   linkLabel: string | null;
   order: number;
@@ -75,6 +80,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminBannerRow | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,13 +95,15 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
       id: "",
       title: "",
       subtitle: null,
-      imageUrl: "",
+      imageUrl: null,
+      videoUrl: null,
       linkUrl: null,
       linkLabel: "了解更多",
       order: nextOrder,
       isActive: true,
     });
     setImageUrl("");
+    setVideoUrl("");
     setFormError(null);
     setUploadError(null);
     setOpen(true);
@@ -103,15 +111,18 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
 
   const openEdit = (row: AdminBannerRow) => {
     setEditing({ ...row });
-    setImageUrl(row.imageUrl);
+    setImageUrl(row.imageUrl ?? "");
+    setVideoUrl(row.videoUrl ?? "");
     setFormError(null);
     setUploadError(null);
     setOpen(true);
   };
 
   useEffect(() => {
-    if (editing) setImageUrl(editing.imageUrl);
-  }, [editing?.id, editing?.imageUrl]);
+    if (!editing) return;
+    setImageUrl(editing.imageUrl ?? "");
+    setVideoUrl(editing.videoUrl ?? "");
+  }, [editing?.id, editing?.imageUrl, editing?.videoUrl]);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -147,6 +158,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
     const form = e.currentTarget;
     const fd = new FormData(form);
     fd.set("imageUrl", imageUrl.trim());
+    fd.set("videoUrl", videoUrl.trim());
     try {
       await saveBanner(fd);
       setOpen(false);
@@ -181,7 +193,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
             首頁輪播
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            管理首頁 Hero 輪播圖；僅「啟用」項目會顯示於前台。可使用上下箭頭調整順序。
+            管理首頁 Hero 輪播；可為圖片或 https 影片直連。僅「啟用」項目會顯示於前台，可用上下箭頭調整順序。
           </p>
         </div>
         <Button type="button" onClick={openCreate}>
@@ -210,18 +222,36 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                 </TableCell>
               </TableRow>
             ) : (
-              initialRows.map((row, idx) => (
+              initialRows.map((row, idx) => {
+                const hasVideo = isBannerVideoUrl(row.videoUrl);
+                const thumb = row.imageUrl?.trim() ?? "";
+                return (
                 <TableRow key={row.id}>
                   <TableCell>
                     <div className="relative aspect-[16/10] w-20 overflow-hidden rounded-md border border-border bg-muted">
-                      <Image
-                        src={row.imageUrl}
-                        alt={row.title}
-                        fill
-                        className="object-cover"
-                        sizes="80px"
-                        unoptimized
-                      />
+                      {hasVideo ? (
+                        <span className="absolute right-0.5 top-0.5 z-10 rounded bg-black/75 px-1 text-[10px] font-medium text-white">
+                          影片
+                        </span>
+                      ) : null}
+                      {thumb ? (
+                        <Image
+                          src={thumb}
+                          alt={row.title}
+                          fill
+                          className="object-cover"
+                          sizes="80px"
+                          unoptimized
+                        />
+                      ) : hasVideo ? (
+                        <div className="flex size-full items-center justify-center bg-zinc-800 text-zinc-400">
+                          <Film className="size-6" aria-hidden />
+                        </div>
+                      ) : (
+                        <div className="flex size-full items-center justify-center p-1 text-center text-[10px] text-muted-foreground">
+                          無預覽
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{row.title}</TableCell>
@@ -272,7 +302,8 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+              );
+              })
             )}
           </TableBody>
         </Table>
@@ -318,11 +349,11 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
               </div>
 
               <div className="grid gap-2">
-                <Label>圖片</Label>
+                <Label>圖片／封面</Label>
                 <p className="text-xs text-muted-foreground">
-                  上傳檔案（寫入{" "}
+                  與下方「影片 URL」至少填一項。上傳檔案會寫入{" "}
                   <code className="rounded bg-muted px-1">public/uploads/banners</code>
-                  ）或於下方貼上圖片 URL。
+                  ；有影片時此圖可作為載入前封面（poster）。
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
@@ -348,16 +379,15 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                     placeholder="/uploads/banners/… 或 https://…"
                     className="font-mono text-sm"
                   />
-                  <input type="hidden" name="imageUrl" value={imageUrl} />
                 </div>
-                {imageUrl ? (
+                {imageUrl.trim() ? (
                   <div
                     className={cn(
                       "relative mt-2 aspect-[21/9] w-full max-w-md overflow-hidden rounded-lg border border-border bg-muted",
                     )}
                   >
                     <Image
-                      src={imageUrl}
+                      src={imageUrl.trim()}
                       alt="預覽"
                       fill
                       className="object-cover"
@@ -366,6 +396,58 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                     />
                   </div>
                 ) : null}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="banner-video-url">影片 URL（選填）</Label>
+                <p className="text-xs text-muted-foreground">
+                  須為 <code className="rounded bg-muted px-1">https</code>
+                  ：可貼 YouTube／Vimeo 影片頁面連結，或影片檔直連（如 .mp4）。嵌入平台會以 iframe
+                  播放；建議另設圖片作為載入前封面。
+                </p>
+                <Input
+                  id="banner-video-url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=… 或 .mp4 直連"
+                  className="font-mono text-sm"
+                />
+                {(() => {
+                  const resolved =
+                    isBannerVideoUrl(videoUrl) &&
+                    resolveBannerBackgroundMedia(videoUrl, false, {
+                      adminPreview: true,
+                    });
+                  if (!resolved) return null;
+                  if (resolved.mode === "iframe") {
+                    return (
+                      <div className="relative mt-2 aspect-video w-full max-w-md overflow-hidden rounded-lg border border-border bg-black">
+                        <iframe
+                          title="影片預覽"
+                          src={resolved.src}
+                          className="size-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          loading="lazy"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="relative mt-2 aspect-video w-full max-w-md overflow-hidden rounded-lg border border-border bg-black">
+                      <video
+                        className="size-full object-cover"
+                        src={resolved.src}
+                        poster={imageUrl.trim() || undefined}
+                        muted
+                        loop
+                        playsInline
+                        controls
+                        preload="metadata"
+                      />
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid gap-2">

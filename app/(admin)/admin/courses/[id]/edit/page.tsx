@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/courses-server";
 import { toCategoryFormOptions } from "@/lib/admin/course-form-serialize";
 import { normalizeCourseCtaKind } from "@/lib/course-cta";
+import { parseIntroBlocksFromJson } from "@/lib/validation/intro-blocks";
 import { isDatabaseConfigured } from "@/lib/env";
 import type { Metadata } from "next";
 import { ArrowLeft, LayoutList } from "lucide-react";
@@ -64,6 +65,11 @@ export default async function CourseCurriculumEditPage({ params }: PageProps) {
       infoCertificateText:
         (course as { infoCertificateText?: string | null }).infoCertificateText ??
         null,
+      introBlocks: parseIntroBlocksFromJson(
+        (course as { introBlocksJson?: unknown }).introBlocksJson,
+      ),
+      listingNoInstructorLine: course.listingNoInstructorLine ?? null,
+      listingNoReviewsLine: course.listingNoReviewsLine ?? null,
       imageUrl: course.imageUrl,
       categoryIds: course.categories.map((c) => c.id),
       price: course.price,
@@ -114,8 +120,7 @@ export default async function CourseCurriculumEditPage({ params }: PageProps) {
       </div>
       <AdminCourseFrontendNotice context="curriculum" />
       <p className="text-sm text-muted-foreground">
-        左側選單：<strong className="text-foreground">課程資訊</strong>（與基本資料表單相同主檔欄位）、
-        <strong className="text-foreground"> 課程公告</strong>（對外「公告」分頁）、章節／課堂（對外「大綱」）。請分區儲存。
+        左側選單：課程資訊（主檔欄位含「列表卡片文案」）、說明區段（前台第一分頁圖／影／文）、課程公告、章節／課堂。請分區儲存。
       </p>
       <CourseCurriculumEditor initial={initial} />
     </div>

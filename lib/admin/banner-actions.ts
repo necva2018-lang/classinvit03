@@ -45,8 +45,16 @@ export async function saveBanner(formData: FormData) {
   if (!title) throw new Error("請填寫標題");
 
   const subtitle = String(formData.get("subtitle") ?? "").trim() || null;
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim();
-  if (!imageUrl) throw new Error("請設定圖片（上傳或貼上 URL）");
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
+  if (!imageUrl && !videoUrl) {
+    throw new Error("請設定圖片 URL 或影片 URL（至少一項）");
+  }
+  // 若資料庫尚未套用 imageUrl DROP NOT NULL，不可寫 SQL NULL；有影片而無圖時改存空字串（UI 以 trim 視同無圖）
+  const imageUrlForDb = imageUrl ?? (videoUrl ? "" : null);
+  if (videoUrl && !/^https:\/\//i.test(videoUrl)) {
+    throw new Error("影片網址需為 https 開頭（可為 YouTube／Vimeo 連結或 .mp4 等直連）");
+  }
 
   const linkUrl = String(formData.get("linkUrl") ?? "").trim() || null;
   const linkLabel = String(formData.get("linkLabel") ?? "").trim() || null;
@@ -62,7 +70,8 @@ export async function saveBanner(formData: FormData) {
       data: {
         title,
         subtitle,
-        imageUrl,
+        imageUrl: imageUrlForDb,
+        videoUrl,
         linkUrl,
         linkLabel,
         order,
@@ -74,7 +83,8 @@ export async function saveBanner(formData: FormData) {
       data: {
         title,
         subtitle,
-        imageUrl,
+        imageUrl: imageUrlForDb,
+        videoUrl,
         linkUrl,
         linkLabel,
         order,

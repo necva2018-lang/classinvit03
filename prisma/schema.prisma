@@ -59,7 +59,9 @@ model Course {
   learnOutcomesText String? @db.Text @map("course_learn_outcomes_text")
   /// 前台「介紹」分頁 · 適合對象：每行一則，空白則依分類顯示站方預設
   targetAudienceText String? @db.Text @map("course_target_audience_text")
-  /// 前台側欄「課程資訊」· 課程時長（空白則不顯示該列；補助課整區不顯示）
+  /// 前台「介紹」分頁 · 說明區段（圖片／影片／文字區塊 JSON 陣列）
+  introBlocksJson    Json?   @map("course_intro_blocks_json")
+  /// 前台側欄「課程資訊」· 課程時長（空白則不顯示該列）
   infoDurationText    String? @db.Text @map("course_info_duration_text")
   /// 前台側欄「課程資訊」· 單元結構說明
   infoStructureText   String? @db.Text @map("course_info_structure_text")
@@ -77,6 +79,10 @@ model Course {
   ctaBuyUrl       String?  @db.Text @map("course_cta_buy_url")
   /// 前台雙按鈕類型（購物車／補助課預設文案不同）
   ctaKind         CourseCtaKind @default(CART) @map("course_cta_kind")
+  /// 列表卡片：無講師時副行（留空則顯示「線上影音課程」）
+  listingNoInstructorLine String? @db.Text @map("course_listing_no_instructor_line")
+  /// 列表卡片：尚無評價時說明（留空則顯示站方預設一句）
+  listingNoReviewsLine   String? @db.Text @map("course_listing_no_reviews_line")
   /// 後台營運狀態（草稿／暫停）
   status          CourseStatus @default(DRAFT) @map("course_status")
   imageUrl        String?  @db.Text
@@ -134,7 +140,10 @@ model Banner {
   id        String   @id @default(cuid())
   title     String
   subtitle  String?  @db.Text
-  imageUrl  String   @db.Text
+  /// 圖片輪播或影片 poster（擇一或併用；與 videoUrl 至少填一）
+  imageUrl  String?  @db.Text
+  /// 背景影片直連網址（https，建議 .mp4 / .webm）；有值時前台以影片為主
+  videoUrl  String?  @db.Text @map("banner_video_url")
   linkUrl   String?  @db.Text
   linkLabel String?
   order     Int      @default(0) @map("banner_order")

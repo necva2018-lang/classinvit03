@@ -32,6 +32,7 @@ export default async function Home() {
         title: r.title,
         subtitle: r.subtitle,
         imageUrl: r.imageUrl,
+        videoUrl: r.videoUrl,
         linkUrl: r.linkUrl,
         linkLabel: r.linkLabel,
       }));

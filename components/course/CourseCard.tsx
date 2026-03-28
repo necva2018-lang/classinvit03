@@ -1,4 +1,8 @@
 import { StarRating } from "@/components/course/StarRating";
+import {
+  DEFAULT_LISTING_NO_INSTRUCTOR_LINE,
+  DEFAULT_LISTING_NO_REVIEWS_LINE,
+} from "@/lib/course-card-listing-defaults";
 import { courseUsesCommerceListingFields } from "@/lib/course-cta";
 import { formatTwd } from "@/lib/format-currency";
 import type { Course } from "@/lib/types/course";
@@ -11,6 +15,11 @@ type Props = {
 
 export function CourseCard({ course }: Props) {
   const href = `/courses/${course.id}`;
+  const noInstructorLine =
+    course.listingNoInstructorLine?.trim() ||
+    DEFAULT_LISTING_NO_INSTRUCTOR_LINE;
+  const noReviewsLine =
+    course.listingNoReviewsLine?.trim() || DEFAULT_LISTING_NO_REVIEWS_LINE;
   const showCommerce = courseUsesCommerceListingFields(course.ctaKind);
   const showOriginal =
     showCommerce &&
@@ -42,7 +51,9 @@ export function CourseCard({ course }: Props) {
             講師：{course.instructor}
           </p>
         ) : (
-          <p className="mt-2 text-xs text-zinc-400 sm:text-sm">線上影音課程</p>
+          <p className="mt-2 text-xs text-zinc-400 sm:text-sm">
+            {noInstructorLine}
+          </p>
         )}
 
         {course.reviewCount > 0 ? (
@@ -56,7 +67,7 @@ export function CourseCard({ course }: Props) {
             </span>
           </div>
         ) : (
-          <p className="mt-2 text-xs text-zinc-400">評價將於課程上架後陸續開放</p>
+          <p className="mt-2 text-xs text-zinc-400">{noReviewsLine}</p>
         )}
 
         {showCommerce ? (
