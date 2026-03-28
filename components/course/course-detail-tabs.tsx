@@ -39,9 +39,18 @@ export function CourseDetailTabs({
   const [tab, setTab] = useState("intro");
 
   const introBody =
-    bodyDescription?.trim() ||
-    heroTeaser?.trim() ||
-    "講師將於此處補充更完整的課程說明與學習路徑。";
+    bodyDescription?.trim() || heroTeaser?.trim() || null;
+  const hasCourseIntro = Boolean(introBody);
+  const hasLearn = learn.length > 0;
+  const hasAudience = audience.length > 0;
+  const hasPrerequisite = prerequisiteBullets.length > 0;
+  const hasPrepare = prepareBullets.length > 0;
+  const hasAnyIntroBlock =
+    hasCourseIntro ||
+    hasLearn ||
+    hasAudience ||
+    hasPrerequisite ||
+    hasPrepare;
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
@@ -71,60 +80,76 @@ export function CourseDetailTabs({
 
       <TabsContent value="intro" className="mt-6 focus-visible:ring-0">
         <section className="space-y-8">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">課程介紹</h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-600">
-              {introBody}
+          {!hasAnyIntroBlock ? (
+            <p className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-10 text-center text-sm text-zinc-500">
+              尚未提供介紹內容。講師可於後台「編輯課程」補上課程介紹與相關欄位。
             </p>
-          </div>
+          ) : null}
 
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">你可以學到</h2>
-            <ul className="mt-3 space-y-2.5">
-              {learn.map((item) => (
-                <li key={item} className="flex gap-2 text-sm text-zinc-700">
-                  <Check
-                    className="mt-0.5 size-4 shrink-0 text-necva-accent"
-                    aria-hidden
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {hasCourseIntro ? (
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">課程介紹</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-600">
+                {introBody}
+              </p>
+            </div>
+          ) : null}
 
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">適合對象</h2>
-            <ul className="mt-3 space-y-2.5">
-              {audience.map((item) => (
-                <li key={item} className="flex gap-2 text-sm text-zinc-700">
-                  <Check
-                    className="mt-0.5 size-4 shrink-0 text-necva-primary"
-                    aria-hidden
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {hasLearn ? (
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">你可以學到</h2>
+              <ul className="mt-3 space-y-2.5">
+                {learn.map((item) => (
+                  <li key={item} className="flex gap-2 text-sm text-zinc-700">
+                    <Check
+                      className="mt-0.5 size-4 shrink-0 text-necva-accent"
+                      aria-hidden
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">學習前基本能力</h2>
-            <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-zinc-600">
-              {prerequisiteBullets.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-          </div>
+          {hasAudience ? (
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">適合對象</h2>
+              <ul className="mt-3 space-y-2.5">
+                {audience.map((item) => (
+                  <li key={item} className="flex gap-2 text-sm text-zinc-700">
+                    <Check
+                      className="mt-0.5 size-4 shrink-0 text-necva-primary"
+                      aria-hidden
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
-          <div>
-            <h2 className="text-lg font-bold text-zinc-900">學習前準備</h2>
-            <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-zinc-600">
-              {prepareBullets.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-          </div>
+          {hasPrerequisite ? (
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">學習前基本能力</h2>
+              <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-zinc-600">
+                {prerequisiteBullets.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {hasPrepare ? (
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">學習前準備</h2>
+              <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-zinc-600">
+                {prepareBullets.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
       </TabsContent>
 

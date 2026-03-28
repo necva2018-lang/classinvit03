@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { prismaSupportsCourseCtaKind } from "@/lib/prisma-course-cta";
 import {
   courseCurriculumCourseSchema,
   courseLessonDraftSchema,
@@ -44,29 +45,55 @@ export async function saveCourseMeta(
   const d = parsed.data;
   const statusRow = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { status: true },
+    select: {
+      status: true,
+      ...(prismaSupportsCourseCtaKind() ? { ctaKind: true } : {}),
+    },
   });
   if (!statusRow) {
     return { ok: false, message: "課程不存在，可能已被刪除。" };
   }
   const isPublished = statusRow.status === "PAUSED" ? false : d.isPublished;
+  const isSubsidy =
+    prismaSupportsCourseCtaKind() &&
+    (statusRow as { ctaKind?: string }).ctaKind === "SUBSIDY";
 
   await prisma.course.update({
     where: { id: courseId },
-    data: {
-      title: d.title,
-      subtitle: d.subtitle ?? null,
-      description: d.description ?? null,
-      prerequisiteText: d.prerequisiteText ?? null,
-      preparationText: d.preparationText ?? null,
-      imageUrl: d.imageUrl ?? null,
-      categories: {
-        set: (d.categoryIds ?? []).map((id) => ({ id })),
-      },
-      price: d.price ?? null,
-      discountedPrice: d.discountedPrice ?? null,
-      isPublished,
-    },
+    data: isSubsidy
+      ? {
+          title: d.title,
+          subtitle: d.subtitle ?? null,
+          description: d.description ?? null,
+          prerequisiteText: d.prerequisiteText ?? null,
+          preparationText: d.preparationText ?? null,
+          infoDurationText: d.infoDurationText ?? null,
+          infoStructureText: d.infoStructureText ?? null,
+          infoResourcesText: d.infoResourcesText ?? null,
+          infoCertificateText: d.infoCertificateText ?? null,
+          categories: {
+            set: (d.categoryIds ?? []).map((id) => ({ id })),
+          },
+          isPublished,
+        }
+      : {
+          title: d.title,
+          subtitle: d.subtitle ?? null,
+          description: d.description ?? null,
+          prerequisiteText: d.prerequisiteText ?? null,
+          preparationText: d.preparationText ?? null,
+          infoDurationText: d.infoDurationText ?? null,
+          infoStructureText: d.infoStructureText ?? null,
+          infoResourcesText: d.infoResourcesText ?? null,
+          infoCertificateText: d.infoCertificateText ?? null,
+          imageUrl: d.imageUrl ?? null,
+          categories: {
+            set: (d.categoryIds ?? []).map((id) => ({ id })),
+          },
+          price: d.price ?? null,
+          discountedPrice: d.discountedPrice ?? null,
+          isPublished,
+        },
   });
 
   revalidateCourse(courseId);

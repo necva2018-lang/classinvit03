@@ -4,7 +4,8 @@
  * - 開發：缺少必要項會 throw，Next 錯誤覆蓋層明顯顯示。
  * - 正式：同樣 throw，由 app/global-error.tsx 顯示友善頁（根 layout 錯誤須用 global-error）。
  *
- * 本機若暫無資料庫：可在 .env.local 設 SKIP_ENV_CHECK=1（僅開發、勿上線）。
+ * 本機若暫無資料庫：開發模式預設已不強制 DATABASE_URL（整站可開；需 DB 的頁面仍要設定 .env）。
+ * 若要與正式相同嚴格檢查：設 REQUIRE_DATABASE_URL_IN_DEV=1。完全略過檢查：SKIP_ENV_CHECK=1（勿上線）。
  */
 
 function isLikelyNextBuildPhase(): boolean {
@@ -88,7 +89,13 @@ export function getMissingRequiredEnv(): string[] {
   const missing: string[] = [];
 
   if (!process.env.DATABASE_URL?.trim()) {
-    missing.push("DATABASE_URL");
+    /** 本機 `npm run dev` 未放 .env 時，不應整站白屏；正式 `next start` 仍強制要有。 */
+    const lenientDevDb =
+      process.env.NODE_ENV !== "production" &&
+      process.env.REQUIRE_DATABASE_URL_IN_DEV !== "1";
+    if (!lenientDevDb) {
+      missing.push("DATABASE_URL");
+    }
   }
 
   if (wantsAuth()) {

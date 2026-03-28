@@ -1,4 +1,3 @@
-import { COURSE_FILTER_OPTIONS } from "@/lib/course-filters";
 import type { Course } from "@/lib/types/course";
 
 export type SearchHit = {
@@ -12,8 +11,12 @@ function norm(s: string) {
   return s.trim().toLowerCase();
 }
 
-/** 依關鍵字搜尋課程（PostgreSQL 列表）與篩選用分類標籤（與 Category.name 對齊） */
-export function searchContent(query: string, courses: Course[]): SearchHit[] {
+/** 依關鍵字搜尋課程與資料庫分類（`dbCategories` 與後台「課程類別」同步） */
+export function searchContent(
+  query: string,
+  courses: Course[],
+  dbCategories: { id: string; name: string }[] = [],
+): SearchHit[] {
   const q = norm(query);
   if (!q) return [];
 
@@ -32,13 +35,13 @@ export function searchContent(query: string, courses: Course[]): SearchHit[] {
     }
   }
 
-  for (const opt of COURSE_FILTER_OPTIONS) {
-    if (opt.label.toLowerCase().includes(q)) {
+  for (const cat of dbCategories) {
+    if (cat.name.toLowerCase().includes(q)) {
       hits.push({
         kind: "category",
-        title: opt.label,
+        title: cat.name,
         subtitle: "課程分類",
-        href: `/courses?tag=${encodeURIComponent(opt.id)}`,
+        href: `/courses?cat=${encodeURIComponent(cat.id)}`,
       });
     }
   }

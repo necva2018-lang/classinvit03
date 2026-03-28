@@ -10,6 +10,12 @@ import type {
   CourseFormCategoryOption,
   CourseFormInitialValues,
 } from "@/lib/admin/course-form-serialize";
+import {
+  CTA_KIND_DEFAULT_FIELDS,
+  courseUsesCommerceListingFields,
+  normalizeCourseCtaKind,
+  type CourseCtaKind,
+} from "@/lib/course-cta";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -39,7 +45,45 @@ export function CourseForm({
   const [isPublished, setIsPublished] = useState<boolean>(
     (course?.isPublished ?? false) && (course?.status ?? "DRAFT") !== "PAUSED",
   );
+  const initialKind = normalizeCourseCtaKind(course?.ctaKind);
+  const [ctaKind, setCtaKind] = useState<CourseCtaKind>(initialKind);
+
+  const [ctaCartText, setCtaCartText] = useState(() => {
+    if (!course) return CTA_KIND_DEFAULT_FIELDS.CART.outlineText;
+    const t = course.ctaCartText?.trim();
+    const kind = normalizeCourseCtaKind(course.ctaKind);
+    return t || CTA_KIND_DEFAULT_FIELDS[kind].outlineText;
+  });
+  const [ctaCartUrl, setCtaCartUrl] = useState(() => {
+    if (!course) return CTA_KIND_DEFAULT_FIELDS.CART.outlineHref;
+    const t = course.ctaCartUrl?.trim();
+    const kind = normalizeCourseCtaKind(course.ctaKind);
+    return t || CTA_KIND_DEFAULT_FIELDS[kind].outlineHref;
+  });
+  const [ctaBuyText, setCtaBuyText] = useState(() => {
+    if (!course) return CTA_KIND_DEFAULT_FIELDS.CART.solidText;
+    const t = course.ctaBuyText?.trim();
+    const kind = normalizeCourseCtaKind(course.ctaKind);
+    return t || CTA_KIND_DEFAULT_FIELDS[kind].solidText;
+  });
+  const [ctaBuyUrl, setCtaBuyUrl] = useState(() => {
+    if (!course) return CTA_KIND_DEFAULT_FIELDS.CART.solidHref;
+    const t = course.ctaBuyUrl?.trim();
+    const kind = normalizeCourseCtaKind(course.ctaKind);
+    return t || CTA_KIND_DEFAULT_FIELDS[kind].solidHref;
+  });
+
   const isPublishDisabled = status === "PAUSED";
+  const isSubsidyCta = ctaKind === "SUBSIDY";
+
+  function applyCtaKindDefaults(next: CourseCtaKind) {
+    const d = CTA_KIND_DEFAULT_FIELDS[normalizeCourseCtaKind(next)];
+    setCtaKind(next);
+    setCtaCartText(d.outlineText);
+    setCtaCartUrl(d.outlineHref);
+    setCtaBuyText(d.solidText);
+    setCtaBuyUrl(d.solidHref);
+  }
 
   return (
     <form action={action} className="mx-auto max-w-2xl space-y-8">
@@ -138,6 +182,36 @@ export function CourseForm({
       </div>
 
       <div className="grid gap-2">
+        <Label htmlFor="learnOutcomesText">你可以學到（選填）</Label>
+        <textarea
+          id="learnOutcomesText"
+          name="learnOutcomesText"
+          rows={5}
+          defaultValue={course?.learnOutcomesText ?? ""}
+          className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="每行一則；空白時前台依課程分類顯示站方預設條列"
+        />
+        <p className="text-xs text-muted-foreground">
+          對應前台「介紹」分頁橙色勾選區塊。
+        </p>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="targetAudienceText">適合對象（選填）</Label>
+        <textarea
+          id="targetAudienceText"
+          name="targetAudienceText"
+          rows={4}
+          defaultValue={course?.targetAudienceText ?? ""}
+          className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="每行一則；空白時前台依課程分類顯示站方預設條列"
+        />
+        <p className="text-xs text-muted-foreground">
+          對應前台「介紹」分頁藍色勾選區塊。
+        </p>
+      </div>
+
+      <div className="grid gap-2">
         <Label htmlFor="prerequisiteText">學習前基本能力（選填）</Label>
         <textarea
           id="prerequisiteText"
@@ -161,21 +235,100 @@ export function CourseForm({
         />
       </div>
 
+      <div className="grid gap-4 rounded-md border border-dashed border-border bg-muted/30 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            前台側欄 · 課程資訊（選填）
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            對應課程頁右側「課程資訊」區塊。每欄空白則前台不顯示該列；四欄皆空白則不顯示整塊。
+            前台 CTA 為「補助課」時，此區塊不會顯示（文案仍會儲存，改回購物車後即生效）。
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="infoDurationText">課程時長</Label>
+          <textarea
+            id="infoDurationText"
+            name="infoDurationText"
+            rows={2}
+            defaultValue={course?.infoDurationText ?? ""}
+            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="例如：約 6 小時、依單元內容而定"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="infoStructureText">單元結構</Label>
+          <textarea
+            id="infoStructureText"
+            name="infoStructureText"
+            rows={2}
+            defaultValue={course?.infoStructureText ?? ""}
+            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="例如：共 4 單元 24 小節"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="infoResourcesText">學習資源</Label>
+          <textarea
+            id="infoResourcesText"
+            name="infoResourcesText"
+            rows={2}
+            defaultValue={course?.infoResourcesText ?? ""}
+            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="例如：教材將於開課後提供下載"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="infoCertificateText">完訓證明</Label>
+          <textarea
+            id="infoCertificateText"
+            name="infoCertificateText"
+            rows={2}
+            defaultValue={course?.infoCertificateText ?? ""}
+            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="例如：提供完課學習證明（實際依平台規範為準）"
+          />
+        </div>
+      </div>
+
       <div className="grid gap-4 rounded-md border border-border p-4">
         <div>
           <h3 className="text-sm font-semibold text-foreground">課程 CTA 按鈕</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            可依課程銷售方式自訂，例如「加入購物車 / 立即購買」或「索取簡章 / 直接報名」。
+            先選類型：切換後會自動帶入對應預設文字與連結，可直接修改後再儲存。
           </p>
+        </div>
+        <div className="grid gap-2 sm:max-w-md">
+          <Label htmlFor="ctaKind">前台 CTA 類型</Label>
+          <select
+            id="ctaKind"
+            name="ctaKind"
+            value={ctaKind}
+            onChange={(e) =>
+              applyCtaKindDefaults(
+                e.target.value === "SUBSIDY" ? "SUBSIDY" : "CART",
+              )
+            }
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="CART">購物車（預設：加入購物車／立即購買）</option>
+            <option value="SUBSIDY">補助課（預設：預約諮詢／立即報名）</option>
+          </select>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="ctaCartText">按鈕一文字（選填）</Label>
+            <Label htmlFor="ctaCartText">
+              按鈕一文字（選填，外框／左）
+              {isSubsidyCta ? " · 預設：預約諮詢" : " · 預設：加入購物車"}
+            </Label>
             <Input
               id="ctaCartText"
               name="ctaCartText"
-              defaultValue={course?.ctaCartText ?? ""}
-              placeholder="例如：加入購物車、索取簡章"
+              value={ctaCartText}
+              onChange={(e) => setCtaCartText(e.target.value)}
+              placeholder={
+                isSubsidyCta ? "例如：預約諮詢" : "例如：加入購物車"
+              }
             />
           </div>
           <div className="grid gap-2">
@@ -183,17 +336,28 @@ export function CourseForm({
             <Input
               id="ctaCartUrl"
               name="ctaCartUrl"
-              defaultValue={course?.ctaCartUrl ?? ""}
-              placeholder="例如：/cart 或 https://example.com/form"
+              value={ctaCartUrl}
+              onChange={(e) => setCtaCartUrl(e.target.value)}
+              placeholder={
+                isSubsidyCta
+                  ? "例如：諮詢表單或 Line 連結"
+                  : "例如：/cart"
+              }
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ctaBuyText">按鈕二文字（選填）</Label>
+            <Label htmlFor="ctaBuyText">
+              按鈕二文字（選填，實心／右）
+              {isSubsidyCta ? " · 預設：立即報名" : " · 預設：立即購買"}
+            </Label>
             <Input
               id="ctaBuyText"
               name="ctaBuyText"
-              defaultValue={course?.ctaBuyText ?? ""}
-              placeholder="例如：立即購買、直接報名"
+              value={ctaBuyText}
+              onChange={(e) => setCtaBuyText(e.target.value)}
+              placeholder={
+                isSubsidyCta ? "例如：立即報名" : "例如：立即購買"
+              }
             />
           </div>
           <div className="grid gap-2">
@@ -201,8 +365,13 @@ export function CourseForm({
             <Input
               id="ctaBuyUrl"
               name="ctaBuyUrl"
-              defaultValue={course?.ctaBuyUrl ?? ""}
-              placeholder="例如：/checkout 或 https://example.com/register"
+              value={ctaBuyUrl}
+              onChange={(e) => setCtaBuyUrl(e.target.value)}
+              placeholder={
+                isSubsidyCta
+                  ? "例如：報名或開課頁面"
+                  : "例如：/checkout"
+              }
             />
           </div>
         </div>
@@ -214,8 +383,18 @@ export function CourseForm({
           <h2 className="text-base font-semibold text-foreground">
             價格、封面與上架
           </h2>
+          {isSubsidyCta ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              前台 CTA 為「補助課」時，此區不適用：儲存後不會寫入定價、特價、封面與本頁的上架勾選（資料庫內舊值保留但不影響前台）。
+              補助課若要對外上架，請至「課程與單元」→ 課程資訊使用「已上架」。
+            </p>
+          ) : null}
         </div>
 
+      <fieldset
+        disabled={!courseUsesCommerceListingFields(ctaKind)}
+        className="min-w-0 space-y-4 border-0 p-0 disabled:pointer-events-none disabled:opacity-60"
+      >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="price">定價（NT$，可含小數）</Label>
@@ -253,6 +432,7 @@ export function CourseForm({
           placeholder="https://…"
         />
       </div>
+      </fieldset>
 
       <div className="flex items-center gap-2">
         <input
@@ -261,7 +441,7 @@ export function CourseForm({
           type="checkbox"
           value="on"
           checked={isPublished}
-          disabled={isPublishDisabled}
+          disabled={isPublishDisabled || isSubsidyCta}
           onChange={(e) => setIsPublished(e.target.checked)}
           className="size-4 rounded border-input"
         />

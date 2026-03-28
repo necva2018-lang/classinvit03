@@ -1,6 +1,7 @@
 import { mapPrismaCourse } from "@/lib/course-mapper";
 import { prisma } from "@/lib/db";
 import { isDatabaseConfigured } from "@/lib/env";
+import { isLikelyDbId } from "@/lib/id-guard";
 import type { Course } from "@/lib/types/course";
 
 const courseInclude = {
@@ -56,24 +57,41 @@ export type SiteCoursePublicAnnouncement = {
   createdAt: string;
 };
 
+/** 課程頁右欄「課程資訊」四則（皆選填；有填才顯示該列） */
+export type SiteCourseInfoSidebarTexts = {
+  durationText: string | null;
+  structureText: string | null;
+  resourcesText: string | null;
+  certificateText: string | null;
+};
+
 export type SiteCourseDetailPayload = {
   course: Course;
   /** 副標／一句話（Prisma subtitle） */
   subtitle: string | null;
   /** 完整課程介紹（Prisma description） */
   bodyDescription: string | null;
+  learnOutcomesText: string | null;
+  targetAudienceText: string | null;
   prerequisiteText: string | null;
   preparationText: string | null;
   announcements: SiteCoursePublicAnnouncement[];
   curriculum: SiteCourseCurriculumSection[];
   stats: SiteCourseDetailStats;
+  infoSidebarTexts: SiteCourseInfoSidebarTexts;
 };
 
 function buildDetailPayload(row: {
   subtitle: string | null;
   description: string | null;
+  learnOutcomesText: string | null;
+  targetAudienceText: string | null;
   prerequisiteText: string | null;
   preparationText: string | null;
+  infoDurationText?: string | null;
+  infoStructureText?: string | null;
+  infoResourcesText?: string | null;
+  infoCertificateText?: string | null;
   announcements: {
     id: string;
     title: string;
@@ -96,11 +114,14 @@ function buildDetailPayload(row: {
   SiteCourseDetailPayload,
   | "subtitle"
   | "bodyDescription"
+  | "learnOutcomesText"
+  | "targetAudienceText"
   | "prerequisiteText"
   | "preparationText"
   | "announcements"
   | "curriculum"
   | "stats"
+  | "infoSidebarTexts"
 > {
   let lessonCount = 0;
   let totalSec = 0;
@@ -133,6 +154,8 @@ function buildDetailPayload(row: {
   return {
     subtitle: row.subtitle,
     bodyDescription: row.description,
+    learnOutcomesText: row.learnOutcomesText,
+    targetAudienceText: row.targetAudienceText,
     prerequisiteText: row.prerequisiteText,
     preparationText: row.preparationText,
     announcements: row.announcements.map((a) => ({
@@ -148,12 +171,37 @@ function buildDetailPayload(row: {
       totalDurationMin,
       hasLessonDurations,
     },
+    infoSidebarTexts: {
+      durationText: row.infoDurationText ?? null,
+      structureText: row.infoStructureText ?? null,
+      resourcesText: row.infoResourcesText ?? null,
+      certificateText: row.infoCertificateText ?? null,
+    },
   };
 }
 
 function isLikelyCourseId(id: string): boolean {
-  const t = id.trim();
-  return t.length >= 8 && t.length <= 64 && /^[a-z0-9]+$/i.test(t);
+  return isLikelyDbId(id);
+}
+
+/** 前台篩選／導覽用：依後台「課程類別」排序 */
+export async function fetchPublicCategories(): Promise<{
+  data: { id: string; name: string }[];
+  error: Error | null;
+}> {
+  if (!isDatabaseConfigured()) {
+    return { data: [], error: null };
+  }
+  try {
+    const rows = await prisma.category.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    });
+    return { data: rows, error: null };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { data: [], error: new Error(message) };
+  }
 }
 
 export async function fetchCourses(): Promise<{

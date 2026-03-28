@@ -6,6 +6,7 @@ import {
   getCategoriesForSelect,
 } from "@/lib/admin/courses-server";
 import { toCategoryFormOptions } from "@/lib/admin/course-form-serialize";
+import { normalizeCourseCtaKind } from "@/lib/course-cta";
 import { isDatabaseConfigured } from "@/lib/env";
 import type { Metadata } from "next";
 import { ArrowLeft, LayoutList } from "lucide-react";
@@ -42,12 +43,27 @@ export default async function CourseCurriculumEditPage({ params }: PageProps) {
   const initial = {
     version: course.updatedAt.toISOString(),
     courseId: course.id,
+    ctaKind: normalizeCourseCtaKind(
+      (course as { ctaKind?: "CART" | "SUBSIDY" }).ctaKind,
+    ),
     course: {
       title: course.title,
       subtitle: course.subtitle,
       description: course.description,
       prerequisiteText: course.prerequisiteText,
       preparationText: course.preparationText,
+      infoDurationText:
+        (course as { infoDurationText?: string | null }).infoDurationText ??
+        null,
+      infoStructureText:
+        (course as { infoStructureText?: string | null }).infoStructureText ??
+        null,
+      infoResourcesText:
+        (course as { infoResourcesText?: string | null }).infoResourcesText ??
+        null,
+      infoCertificateText:
+        (course as { infoCertificateText?: string | null }).infoCertificateText ??
+        null,
       imageUrl: course.imageUrl,
       categoryIds: course.categories.map((c) => c.id),
       price: course.price,

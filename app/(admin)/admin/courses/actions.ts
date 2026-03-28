@@ -1,6 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { persistLearnAudienceColumnsRaw } from "@/lib/admin/persist-learn-audience-raw";
+import {
+  prismaSupportsCourseCtaKind,
+  prismaSupportsCourseLearnAudienceFields,
+} from "@/lib/prisma-course-cta";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -16,6 +21,12 @@ function parseCourseStatus(v: FormDataEntryValue | null): CourseStatus {
   return v === "PAUSED" ? "PAUSED" : "DRAFT";
 }
 
+function parseCourseCtaKind(
+  v: FormDataEntryValue | null,
+): "CART" | "SUBSIDY" {
+  return v === "SUBSIDY" ? "SUBSIDY" : "CART";
+}
+
 function categoryIdsFromForm(formData: FormData): string[] {
   const raw = formData.getAll("categoryIds");
   const ids: string[] = [];
@@ -24,6 +35,28 @@ function categoryIdsFromForm(formData: FormData): string[] {
     if (s) ids.push(s);
   }
   return ids;
+}
+
+/** Prisma Client 未 generate 新欄位時，仍用 Raw SQL 寫入（需已 migrate） */
+async function syncLearnAudienceIfStaleClient(
+  courseId: string,
+  learnOutcomesText: string | null,
+  targetAudienceText: string | null,
+) {
+  if (prismaSupportsCourseLearnAudienceFields()) return;
+  try {
+    await persistLearnAudienceColumnsRaw(
+      courseId,
+      learnOutcomesText,
+      targetAudienceText,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[admin] sync learn/audience raw:", msg);
+    throw new Error(
+      "無法儲存「你可以學到／適合對象」。請確認已執行 npx prisma migrate deploy；並執行 npx prisma generate 後重啟開發伺服器。若錯誤為 column does not exist，代表資料庫尚未遷移。",
+    );
+  }
 }
 
 export async function createCourse(formData: FormData) {
@@ -39,6 +72,19 @@ export async function createCourse(formData: FormData) {
     String(formData.get("prerequisiteText") ?? "").trim() || null;
   const preparationText =
     String(formData.get("preparationText") ?? "").trim() || null;
+  const learnOutcomesText =
+    String(formData.get("learnOutcomesText") ?? "").trim() || null;
+  const targetAudienceText =
+    String(formData.get("targetAudienceText") ?? "").trim() || null;
+  const infoDurationText =
+    String(formData.get("infoDurationText") ?? "").trim() || null;
+  const infoStructureText =
+    String(formData.get("infoStructureText") ?? "").trim() || null;
+  const infoResourcesText =
+    String(formData.get("infoResourcesText") ?? "").trim() || null;
+  const infoCertificateText =
+    String(formData.get("infoCertificateText") ?? "").trim() || null;
+  const ctaKind = parseCourseCtaKind(formData.get("ctaKind"));
   const ctaCartText = String(formData.get("ctaCartText") ?? "").trim() || null;
   const ctaCartUrl = String(formData.get("ctaCartUrl") ?? "").trim() || null;
   const ctaBuyText = String(formData.get("ctaBuyText") ?? "").trim() || null;
@@ -49,6 +95,21 @@ export async function createCourse(formData: FormData) {
   const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
   const isPublished = status === "PAUSED" ? false : formData.get("isPublished") === "on";
 
+  const commerceData =
+    ctaKind === "SUBSIDY"
+      ? {
+          price: null as number | null,
+          discountedPrice: null as number | null,
+          imageUrl: null as string | null,
+          isPublished: false,
+        }
+      : {
+          imageUrl,
+          price,
+          discountedPrice,
+          isPublished,
+        };
+
   const created = await prisma.course.create({
     data: {
       title,
@@ -57,20 +118,31 @@ export async function createCourse(formData: FormData) {
       description,
       prerequisiteText,
       preparationText,
+      infoDurationText,
+      infoStructureText,
+      infoResourcesText,
+      infoCertificateText,
+      ...(prismaSupportsCourseLearnAudienceFields()
+        ? { learnOutcomesText, targetAudienceText }
+        : {}),
+      ...(prismaSupportsCourseCtaKind() ? { ctaKind } : {}),
       ctaCartText,
       ctaCartUrl,
       ctaBuyText,
       ctaBuyUrl,
-      imageUrl,
-      price,
-      discountedPrice,
-      isPublished,
+      ...commerceData,
       categories:
         categoryIds.length > 0
           ? { connect: categoryIds.map((id) => ({ id })) }
           : undefined,
     },
   });
+
+  await syncLearnAudienceIfStaleClient(
+    created.id,
+    learnOutcomesText,
+    targetAudienceText,
+  );
 
   revalidatePath("/admin/courses");
   revalidatePath("/");
@@ -92,6 +164,19 @@ export async function updateCourse(courseId: string, formData: FormData) {
     String(formData.get("prerequisiteText") ?? "").trim() || null;
   const preparationText =
     String(formData.get("preparationText") ?? "").trim() || null;
+  const learnOutcomesText =
+    String(formData.get("learnOutcomesText") ?? "").trim() || null;
+  const targetAudienceText =
+    String(formData.get("targetAudienceText") ?? "").trim() || null;
+  const infoDurationText =
+    String(formData.get("infoDurationText") ?? "").trim() || null;
+  const infoStructureText =
+    String(formData.get("infoStructureText") ?? "").trim() || null;
+  const infoResourcesText =
+    String(formData.get("infoResourcesText") ?? "").trim() || null;
+  const infoCertificateText =
+    String(formData.get("infoCertificateText") ?? "").trim() || null;
+  const ctaKind = parseCourseCtaKind(formData.get("ctaKind"));
   const ctaCartText = String(formData.get("ctaCartText") ?? "").trim() || null;
   const ctaCartUrl = String(formData.get("ctaCartUrl") ?? "").trim() || null;
   const ctaBuyText = String(formData.get("ctaBuyText") ?? "").trim() || null;
@@ -102,26 +187,49 @@ export async function updateCourse(courseId: string, formData: FormData) {
   const discountedPrice = parseFloatOrNull(formData.get("discountedPrice"));
   const isPublished = status === "PAUSED" ? false : formData.get("isPublished") === "on";
 
+  const baseUpdate = {
+    title,
+    subtitle,
+    status,
+    description,
+    prerequisiteText,
+    preparationText,
+    infoDurationText,
+    infoStructureText,
+    infoResourcesText,
+    infoCertificateText,
+    ...(prismaSupportsCourseLearnAudienceFields()
+      ? { learnOutcomesText, targetAudienceText }
+      : {}),
+    ...(prismaSupportsCourseCtaKind() ? { ctaKind } : {}),
+    ctaCartText,
+    ctaCartUrl,
+    ctaBuyText,
+    ctaBuyUrl,
+    categories: { set: categoryIds.map((id) => ({ id })) },
+  };
+
+  const data =
+    ctaKind === "SUBSIDY"
+      ? baseUpdate
+      : {
+          ...baseUpdate,
+          imageUrl,
+          price,
+          discountedPrice,
+          isPublished,
+        };
+
   await prisma.course.update({
     where: { id: courseId },
-    data: {
-      title,
-      subtitle,
-      status,
-      description,
-      prerequisiteText,
-      preparationText,
-      ctaCartText,
-      ctaCartUrl,
-      ctaBuyText,
-      ctaBuyUrl,
-      imageUrl,
-      price,
-      discountedPrice,
-      isPublished,
-      categories: { set: categoryIds.map((id) => ({ id })) },
-    },
+    data,
   });
+
+  await syncLearnAudienceIfStaleClient(
+    courseId,
+    learnOutcomesText,
+    targetAudienceText,
+  );
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);
@@ -155,6 +263,30 @@ export async function duplicateCourse(courseId: string) {
       description: source.description,
       prerequisiteText: source.prerequisiteText,
       preparationText: source.preparationText,
+      infoDurationText: (source as { infoDurationText?: string | null })
+        .infoDurationText,
+      infoStructureText: (source as { infoStructureText?: string | null })
+        .infoStructureText,
+      infoResourcesText: (source as { infoResourcesText?: string | null })
+        .infoResourcesText,
+      infoCertificateText: (source as { infoCertificateText?: string | null })
+        .infoCertificateText,
+      ...(prismaSupportsCourseLearnAudienceFields()
+        ? {
+            learnOutcomesText: (
+              source as { learnOutcomesText?: string | null }
+            ).learnOutcomesText,
+            targetAudienceText: (
+              source as { targetAudienceText?: string | null }
+            ).targetAudienceText,
+          }
+        : {}),
+      ...(prismaSupportsCourseCtaKind()
+        ? {
+            ctaKind:
+              (source as { ctaKind?: "CART" | "SUBSIDY" }).ctaKind ?? "CART",
+          }
+        : {}),
       ctaCartText: source.ctaCartText,
       ctaCartUrl: source.ctaCartUrl,
       ctaBuyText: source.ctaBuyText,
@@ -189,6 +321,16 @@ export async function duplicateCourse(courseId: string) {
       },
     },
   });
+
+  if (!prismaSupportsCourseLearnAudienceFields()) {
+    await syncLearnAudienceIfStaleClient(
+      duplicated.id,
+      (source as { learnOutcomesText?: string | null }).learnOutcomesText ??
+        null,
+      (source as { targetAudienceText?: string | null }).targetAudienceText ??
+        null,
+    );
+  }
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);

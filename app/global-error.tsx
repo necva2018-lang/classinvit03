@@ -25,7 +25,7 @@ export default function GlobalError({
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400">
             {envIssue
-              ? "正式環境請至 Zeabur 專案 → Web 服務 → Variables 補齊必要變數後重新部署。"
+              ? "請確認專案根目錄有 .env 且含 DATABASE_URL（本機）或 Zeabur Web Variables（正式）。若本機暫無資料庫，可設 SKIP_ENV_CHECK=1 僅供開發。OAuth 相關變數須成對填寫。"
               : "請稍後再試，或聯絡管理員並提供錯誤摘要。"}
           </p>
           <pre className="mt-6 max-h-48 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 p-4 text-left text-xs leading-relaxed whitespace-pre-wrap text-amber-200/90">

@@ -39,7 +39,7 @@ export function CourseMegaMenu({ panelId, categories, onNavigate }: Props) {
           </ul>
         )}
         <p className="mt-4 text-xs text-zinc-400">
-          名稱與篩選標籤一致時，將帶入課程列表對應主題。
+          點擊後會開啟課程列表並依該分類篩選（與後台「課程類別」同步）。
         </p>
       </div>
     </div>

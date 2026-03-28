@@ -23,6 +23,7 @@ export type AdminCourseTableRow = {
   id: string;
   title: string;
   categoryName: string;
+  ctaKind: "CART" | "SUBSIDY";
   price: number | null;
   discountedPrice: number | null;
   isPublished: boolean;
@@ -55,6 +56,11 @@ export function CoursesDataTable({ data }: { data: AdminCourseTableRow[] }) {
         header: "價格",
         cell: ({ row }) => {
           const r = row.original;
+          if (r.ctaKind === "SUBSIDY") {
+            return (
+              <span className="text-sm text-muted-foreground">補助課（不適用）</span>
+            );
+          }
           const sale = r.discountedPrice ?? r.price;
           const showStrike =
             r.discountedPrice != null &&

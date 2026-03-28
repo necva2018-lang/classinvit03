@@ -30,6 +30,12 @@ enum CourseStatus {
   PAUSED
 }
 
+/// 前台雙按鈕語意：一般電商購物流 vs 補助／諮詢報名
+enum CourseCtaKind {
+  CART
+  SUBSIDY
+}
+
 // 課程分類 (如：人工智慧、網頁前端)
 model Category {
   id        String   @id @default(cuid())
@@ -49,6 +55,18 @@ model Course {
   prerequisiteText String? @db.Text @map("course_prerequisite_text")
   /// 前台「學習前準備」：每行一則
   preparationText  String? @db.Text @map("course_preparation_text")
+  /// 前台「介紹」分頁 · 你可以學到：每行一則，空白則依分類顯示站方預設
+  learnOutcomesText String? @db.Text @map("course_learn_outcomes_text")
+  /// 前台「介紹」分頁 · 適合對象：每行一則，空白則依分類顯示站方預設
+  targetAudienceText String? @db.Text @map("course_target_audience_text")
+  /// 前台側欄「課程資訊」· 課程時長（空白則不顯示該列；補助課整區不顯示）
+  infoDurationText    String? @db.Text @map("course_info_duration_text")
+  /// 前台側欄「課程資訊」· 單元結構說明
+  infoStructureText   String? @db.Text @map("course_info_structure_text")
+  /// 前台側欄「課程資訊」· 學習資源
+  infoResourcesText   String? @db.Text @map("course_info_resources_text")
+  /// 前台側欄「課程資訊」· 完訓證明
+  infoCertificateText String? @db.Text @map("course_info_certificate_text")
   /// 前台 CTA：加入購物車（或自訂）按鈕文字
   ctaCartText     String?  @db.Text @map("course_cta_cart_text")
   /// 前台 CTA：加入購物車（或自訂）按鈕連結
@@ -57,6 +75,8 @@ model Course {
   ctaBuyText      String?  @db.Text @map("course_cta_buy_text")
   /// 前台 CTA：立即購買（或自訂）按鈕連結
   ctaBuyUrl       String?  @db.Text @map("course_cta_buy_url")
+  /// 前台雙按鈕類型（購物車／補助課預設文案不同）
+  ctaKind         CourseCtaKind @default(CART) @map("course_cta_kind")
   /// 後台營運狀態（草稿／暫停）
   status          CourseStatus @default(DRAFT) @map("course_status")
   imageUrl        String?  @db.Text

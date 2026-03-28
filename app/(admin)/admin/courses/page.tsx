@@ -4,6 +4,7 @@ import {
   NewCourseButton,
 } from "@/components/admin/courses-data-table";
 import { formatCourseCategoryLabels } from "@/lib/admin/course-form-serialize";
+import { normalizeCourseCtaKind } from "@/lib/course-cta";
 import { getAdminCourseList } from "@/lib/admin/courses-server";
 import { isDatabaseConfigured } from "@/lib/env";
 import type { Metadata } from "next";
@@ -42,6 +43,9 @@ export default async function AdminCoursesPage() {
     id: r.id,
     title: r.title,
     categoryName: formatCourseCategoryLabels(r.categories),
+    ctaKind: normalizeCourseCtaKind(
+      (r as { ctaKind?: "CART" | "SUBSIDY" }).ctaKind,
+    ),
     price: r.price,
     discountedPrice: r.discountedPrice,
     isPublished: r.isPublished,

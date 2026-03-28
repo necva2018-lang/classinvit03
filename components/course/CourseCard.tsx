@@ -1,4 +1,5 @@
 import { StarRating } from "@/components/course/StarRating";
+import { courseUsesCommerceListingFields } from "@/lib/course-cta";
 import { formatTwd } from "@/lib/format-currency";
 import type { Course } from "@/lib/types/course";
 import Image from "next/image";
@@ -10,8 +11,11 @@ type Props = {
 
 export function CourseCard({ course }: Props) {
   const href = `/courses/${course.id}`;
+  const showCommerce = courseUsesCommerceListingFields(course.ctaKind);
   const showOriginal =
-    course.priceOriginal != null && course.priceOriginal > course.priceSale;
+    showCommerce &&
+    course.priceOriginal != null &&
+    course.priceOriginal > course.priceSale;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-necva-primary/25 hover:shadow-md">
@@ -55,16 +59,22 @@ export function CourseCard({ course }: Props) {
           <p className="mt-2 text-xs text-zinc-400">評價將於課程上架後陸續開放</p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-baseline justify-end gap-2 border-t border-zinc-100 pt-3">
-          {showOriginal && (
-            <span className="text-sm text-zinc-400 line-through">
-              {formatTwd(course.priceOriginal!)}
+        {showCommerce ? (
+          <div className="mt-auto flex flex-wrap items-baseline justify-end gap-2 border-t border-zinc-100 pt-3">
+            {showOriginal ? (
+              <span className="text-sm text-zinc-400 line-through">
+                {formatTwd(course.priceOriginal!)}
+              </span>
+            ) : null}
+            <span className="text-lg font-bold text-necva-accent sm:text-xl">
+              {formatTwd(course.priceSale)}
             </span>
-          )}
-          <span className="text-lg font-bold text-necva-accent sm:text-xl">
-            {formatTwd(course.priceSale)}
-          </span>
-        </div>
+          </div>
+        ) : (
+          <div className="mt-auto border-t border-zinc-100 pt-3 text-right text-xs font-medium text-zinc-500">
+            補助／諮詢課程
+          </div>
+        )}
       </div>
     </article>
   );

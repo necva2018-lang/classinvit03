@@ -1,4 +1,4 @@
-import { fetchCourses } from "@/lib/courses-queries";
+import { fetchCourses, fetchPublicCategories } from "@/lib/courses-queries";
 import { isDatabaseConfigured } from "@/lib/env";
 import { searchContent } from "@/lib/search";
 import type { Course } from "@/lib/types/course";
@@ -27,16 +27,21 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const query = q.trim();
 
   let courses: Course[] = [];
+  let dbCategories: { id: string; name: string }[] = [];
   if (isDatabaseConfigured()) {
     try {
-      const res = await fetchCourses();
+      const [res, catRes] = await Promise.all([
+        fetchCourses(),
+        fetchPublicCategories(),
+      ]);
       if (!res.error) courses = res.data;
+      if (!catRes.error) dbCategories = catRes.data;
     } catch {
       courses = [];
     }
   }
 
-  const hits = searchContent(query, courses);
+  const hits = searchContent(query, courses, dbCategories);
 
   return (
     <div className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">

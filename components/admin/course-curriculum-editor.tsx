@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { normalizeCourseCtaKind } from "@/lib/course-cta";
 import {
   AlertCircle,
   BookMarked,
@@ -61,6 +62,8 @@ export type CurriculumEditorInitial = {
   /** 資料版本（通常為 course.updatedAt），儲存後 refresh 時用於同步草稿 */
   version: string;
   courseId: string;
+  /** 與基本資料表單「前台 CTA 類型」同步；補助課時不寫入價格與封面 */
+  ctaKind: "CART" | "SUBSIDY";
   course: CourseCurriculumCourseInput;
   announcements: CurriculumAnnouncementInitial[];
   sections: CurriculumSectionInitial[];
@@ -102,6 +105,7 @@ function WarningDot({ show }: { show: boolean }) {
 
 export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorInitial }) {
   const router = useRouter();
+  const isSubsidyCta = normalizeCourseCtaKind(initial.ctaKind) === "SUBSIDY";
   const [drafts, setDrafts] = useState<CourseTreeDrafts>(() => buildDrafts(initial));
   const [selection, setSelection] = useState<Selection>({ kind: "course" });
 
@@ -483,6 +487,80 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 )}
               </div>
             </div>
+            <div className="grid gap-4 rounded-md border border-dashed border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">
+                前台側欄 · 課程資訊（選填）
+              </p>
+              <div className="grid gap-2">
+                <Label htmlFor="c-info-dur">課程時長</Label>
+                <textarea
+                  id="c-info-dur"
+                  rows={2}
+                  value={course.infoDurationText ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      infoDurationText:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  className="flex min-h-[56px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="c-info-struct">單元結構</Label>
+                <textarea
+                  id="c-info-struct"
+                  rows={2}
+                  value={course.infoStructureText ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      infoStructureText:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  className="flex min-h-[56px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="c-info-res">學習資源</Label>
+                <textarea
+                  id="c-info-res"
+                  rows={2}
+                  value={course.infoResourcesText ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      infoResourcesText:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  className="flex min-h-[56px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="c-info-cert">完訓證明</Label>
+                <textarea
+                  id="c-info-cert"
+                  rows={2}
+                  value={course.infoCertificateText ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      infoCertificateText:
+                        e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  className="flex min-h-[56px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+            {isSubsidyCta ? (
+              <p className="text-xs text-muted-foreground">
+                此課程為「補助課」：定價、特價與封面請於基本資料改為「購物車」後再編輯；儲存時也不會覆寫資料庫中的這些欄位。
+              </p>
+            ) : null}
+            <fieldset
+              disabled={isSubsidyCta}
+              className="min-w-0 space-y-4 border-0 p-0 disabled:pointer-events-none disabled:opacity-60"
+            >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="c-price">定價（不可為負）</Label>
@@ -539,6 +617,7 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 }
               />
             </div>
+            </fieldset>
             <div className="flex items-center gap-2">
               <input
                 id="c-pub"

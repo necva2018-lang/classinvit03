@@ -1,4 +1,5 @@
 import type { Category, Course } from "@prisma/client";
+import { normalizeCourseCtaKind } from "@/lib/course-cta";
 
 /** 可從 Server Component 傳入 Client Component（純 JSON） */
 export type CourseFormCategoryOption = {
@@ -13,6 +14,13 @@ export type CourseFormInitialValues = {
   description: string | null;
   prerequisiteText: string | null;
   preparationText: string | null;
+  learnOutcomesText: string | null;
+  targetAudienceText: string | null;
+  infoDurationText: string | null;
+  infoStructureText: string | null;
+  infoResourcesText: string | null;
+  infoCertificateText: string | null;
+  ctaKind: "CART" | "SUBSIDY";
   ctaCartText: string | null;
   ctaCartUrl: string | null;
   ctaBuyText: string | null;
@@ -47,6 +55,23 @@ export function toCourseFormInitialValues(
     description: course.description,
     prerequisiteText: course.prerequisiteText,
     preparationText: course.preparationText,
+    learnOutcomesText: course.learnOutcomesText,
+    targetAudienceText: course.targetAudienceText,
+    infoDurationText:
+      (course as { infoDurationText?: string | null }).infoDurationText ??
+      null,
+    infoStructureText:
+      (course as { infoStructureText?: string | null }).infoStructureText ??
+      null,
+    infoResourcesText:
+      (course as { infoResourcesText?: string | null }).infoResourcesText ??
+      null,
+    infoCertificateText:
+      (course as { infoCertificateText?: string | null }).infoCertificateText ??
+      null,
+    ctaKind: normalizeCourseCtaKind(
+      (course as { ctaKind?: "CART" | "SUBSIDY" }).ctaKind,
+    ),
     ctaCartText: course.ctaCartText,
     ctaCartUrl: course.ctaCartUrl,
     ctaBuyText: course.ctaBuyText,

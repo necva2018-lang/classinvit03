@@ -1,15 +1,20 @@
 import { CourseDetailSidebar } from "@/components/course/course-detail-sidebar";
 import { CourseDetailTabs } from "@/components/course/course-detail-tabs";
 import { StarRating } from "@/components/course/StarRating";
-import { linesFromMultilineField } from "@/lib/course-detail-bullets";
+import {
+  linesFromMultilineFieldStrict,
+} from "@/lib/course-detail-bullets";
 import {
   fetchCourseById,
   fetchPublishedCourseDetail,
 } from "@/lib/courses-queries";
 import { isDatabaseConfigured } from "@/lib/env";
+import {
+  courseUsesCommerceListingFields,
+  resolveCourseCtaPair,
+} from "@/lib/course-cta";
 import { formatTwd } from "@/lib/format-currency";
 import { siteOriginFromEnv, toAbsoluteUrl } from "@/lib/seo/absolute-url";
-import type { CourseFilterTagId } from "@/lib/course-filters";
 import type { Course } from "@/lib/types/course";
 import { ChevronRight, Clock, UserRound } from "lucide-react";
 import type { Metadata } from "next";
@@ -33,7 +38,9 @@ function courseMetaDescription(course: Course): string {
     course.reviewCount > 0
       ? ` 評分 ${course.rating.toFixed(1)}（${course.reviewCount.toLocaleString("zh-TW")} 則評價）。`
       : "";
-  const priceLine = ` 線上特惠 ${formatTwd(course.priceSale)}。`;
+  const priceLine = courseUsesCommerceListingFields(course.ctaKind)
+    ? ` 線上特惠 ${formatTwd(course.priceSale)}。`
+    : "";
   return `${base}${ratingLine}${priceLine}`.slice(0, 160);
 }
 
@@ -94,70 +101,6 @@ export async function generateMetadata({
   };
 }
 
-function outlineFor(course: Course): { learn: string[]; audience: string[] } {
-  const baseLearn = [
-    "業界實例與逐步操作，上完能直接應用於工作",
-    "章節測驗與練習檔，鞏固觀念不卡關",
-    "完課可申請證明，方便放入履歷與作品集",
-  ];
-  const baseAudience = [
-    "希望系統化補強該領域的上班族與轉職者",
-    "想透過專題累積作品、面試時能具體說明的學員",
-  ];
-
-  const tags = new Set<CourseFilterTagId>(course.filterTags);
-
-  if (tags.has("ai") || tags.has("frontend") || tags.has("data")) {
-    return {
-      learn: [
-        "環境建置到部署的完整流程與除錯技巧",
-        "可重用的程式架構與最佳實務習慣",
-        ...baseLearn.slice(0, 2),
-      ],
-      audience: [
-        "具基礎邏輯思維，想進入工程／資料相關職涯者",
-        ...baseAudience,
-      ],
-    };
-  }
-  if (tags.has("design")) {
-    return {
-      learn: [
-        "從使用者研究到視覺交付的設計流程",
-        "元件庫與設計規格，方便與工程協作",
-        ...baseLearn.slice(0, 2),
-      ],
-      audience: ["對 UI/UX 有興趣的設計新手與產品工作者", ...baseAudience],
-    };
-  }
-  if (tags.has("marketing") || tags.has("career")) {
-    return {
-      learn: [
-        "可落地的策略框架與成效檢視方式",
-        "案例拆解與實作節奏，對齊職場真實情境",
-        ...baseLearn.slice(0, 2),
-      ],
-      audience: [
-        "想提升行銷／營運或管理思維的上班族與轉職者",
-        ...baseAudience,
-      ],
-    };
-  }
-  return { learn: baseLearn, audience: baseAudience };
-}
-
-const DEFAULT_PREREQUISITE = [
-  "能清楚描述你想解決的工作或學習情境。",
-  "無需特定證照；依課程主題可能需要基礎工具操作能力。",
-  "無需專業程式背景（除非課程標題另有標示）。",
-];
-
-const DEFAULT_PREPARE = [
-  "建議使用筆電或桌機，方便跟著操作與練習。",
-  "準備可穩定上網的環境；部分主題會使用雲端工具。",
-  "可事先整理與課程相關的範例資料，實作更有感。",
-];
-
 export default async function CourseDetailPage({ params }: PageProps) {
   const { id } = await params;
 
@@ -175,23 +118,24 @@ export default async function CourseDetailPage({ params }: PageProps) {
     subtitle,
     bodyDescription,
     curriculum,
-    stats,
+    learnOutcomesText,
+    targetAudienceText,
     prerequisiteText,
     preparationText,
     announcements,
+    infoSidebarTexts,
   } = res.data;
-  const { learn, audience } = outlineFor(course);
-  const prerequisiteBullets = linesFromMultilineField(
-    prerequisiteText,
-    DEFAULT_PREREQUISITE,
-  );
-  const prepareBullets = linesFromMultilineField(
-    preparationText,
-    DEFAULT_PREPARE,
-  );
+  const learn = linesFromMultilineFieldStrict(learnOutcomesText);
+  const audience = linesFromMultilineFieldStrict(targetAudienceText);
+  const prerequisiteBullets =
+    linesFromMultilineFieldStrict(prerequisiteText);
+  const prepareBullets = linesFromMultilineFieldStrict(preparationText);
 
+  const showCommerce = courseUsesCommerceListingFields(course.ctaKind);
   const showOriginal =
-    course.priceOriginal != null && course.priceOriginal > course.priceSale;
+    showCommerce &&
+    course.priceOriginal != null &&
+    course.priceOriginal > course.priceSale;
 
   const tagLabels =
     course.category === "未分類"
@@ -207,10 +151,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
       ? bodyDescription.trim().slice(0, 220) +
         (bodyDescription.trim().length > 220 ? "…" : "")
       : null);
-  const cartText = course.ctaCartText?.trim() || "加入購物車";
-  const cartUrl = course.ctaCartUrl?.trim() || "/cart";
-  const buyText = course.ctaBuyText?.trim() || "立即購買";
-  const buyUrl = course.ctaBuyUrl?.trim() || "/checkout";
+  const cta = resolveCourseCtaPair(course);
 
   return (
     <div className="flex flex-1 flex-col bg-white">
@@ -246,16 +187,22 @@ export default async function CourseDetailPage({ params }: PageProps) {
                 {course.title}
               </h1>
 
-              <div className="mt-4 flex flex-wrap items-baseline gap-3">
-                {showOriginal ? (
-                  <span className="text-lg text-zinc-400 line-through sm:text-xl">
-                    {formatTwd(course.priceOriginal!)}
+              {showCommerce ? (
+                <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                  {showOriginal ? (
+                    <span className="text-lg text-zinc-400 line-through sm:text-xl">
+                      {formatTwd(course.priceOriginal!)}
+                    </span>
+                  ) : null}
+                  <span className="text-3xl font-bold text-necva-accent sm:text-4xl">
+                    {formatTwd(course.priceSale)}
                   </span>
-                ) : null}
-                <span className="text-3xl font-bold text-necva-accent sm:text-4xl">
-                  {formatTwd(course.priceSale)}
-                </span>
-              </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm font-medium text-zinc-600">
+                  補助／諮詢課程 · 請透過下方按鈕預約或報名
+                </p>
+              )}
 
               {tagLabels.length > 0 ? (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -302,16 +249,16 @@ export default async function CourseDetailPage({ params }: PageProps) {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
-                  href={cartUrl}
+                  href={cta.outline.href}
                   className="flex h-12 min-w-[160px] flex-1 items-center justify-center rounded-lg border-2 border-necva-primary bg-white text-sm font-semibold text-necva-primary shadow-sm transition hover:bg-necva-primary/5 sm:flex-none"
                 >
-                  {cartText}
+                  {cta.outline.text}
                 </Link>
                 <Link
-                  href={buyUrl}
+                  href={cta.solid.href}
                   className="flex h-12 min-w-[160px] flex-1 items-center justify-center rounded-lg bg-necva-primary text-sm font-semibold text-white shadow-md transition hover:bg-necva-primary/90 sm:flex-none"
                 >
-                  {buyText}
+                  {cta.solid.text}
                 </Link>
               </div>
             </div>
@@ -350,7 +297,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
               announcements={announcements}
             />
           </div>
-          <CourseDetailSidebar course={course} stats={stats} />
+          <CourseDetailSidebar course={course} infoSidebarTexts={infoSidebarTexts} />
         </div>
       </section>
     </div>

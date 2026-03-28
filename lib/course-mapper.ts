@@ -3,6 +3,7 @@ import {
   type CourseFilterTagId,
 } from "@/lib/course-filters";
 import { COURSE_COVER_PLACEHOLDER } from "@/lib/course-cover-placeholder";
+import { courseUsesCommerceListingFields, type CourseCtaKind } from "@/lib/course-cta";
 import type { Course } from "@/lib/types/course";
 import type { Category, Course as PrismaCourse } from "@prisma/client";
 
@@ -29,20 +30,28 @@ export function mapPrismaCourse(row: CourseWithCategories): Course {
 
   const catNames = row.categories.map((c) => c.name);
   const categoryLabel = catNames.length ? catNames.join("、") : "未分類";
+  const categoryIds = row.categories.map((c) => c.id);
+  const ctaKind = (row as { ctaKind?: CourseCtaKind }).ctaKind ?? "CART";
+  const useCommerce = courseUsesCommerceListingFields(ctaKind);
 
   return {
     id: row.id,
     title: row.title,
     description: row.description ?? row.subtitle ?? null,
-    priceSale: Math.round(sale),
-    priceOriginal: hasDiscount ? Math.round(list!) : null,
-    coverImage: row.imageUrl?.trim() || COURSE_COVER_PLACEHOLDER,
+    priceSale: useCommerce ? Math.round(sale) : 0,
+    priceOriginal:
+      useCommerce && hasDiscount ? Math.round(list!) : null,
+    coverImage: useCommerce
+      ? row.imageUrl?.trim() || COURSE_COVER_PLACEHOLDER
+      : COURSE_COVER_PLACEHOLDER,
     category: categoryLabel,
     rating: 0,
     reviewCount: 0,
     instructor: "",
     filterTags: filterTagsForCategoryNames(catNames),
+    categoryIds,
     slug: null,
+    ctaKind,
     ctaCartText: row.ctaCartText ?? null,
     ctaCartUrl: row.ctaCartUrl ?? null,
     ctaBuyText: row.ctaBuyText ?? null,

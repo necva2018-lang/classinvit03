@@ -16,12 +16,53 @@ function clientHasBannerDelegate(client: PrismaClient): boolean {
   return typeof d.banner?.findMany === "function";
 }
 
+function getCourseRuntimeFields(
+  client: PrismaClient,
+): { name: string }[] | undefined {
+  return (
+    client as unknown as {
+      _runtimeDataModel?: {
+        models?: Record<string, { fields?: { name: string }[] }>;
+      };
+    }
+  )._runtimeDataModel?.models?.Course?.fields;
+}
+
+/** 與目前 schema 同步：Course 需含 ctaKind */
+function clientCourseHasCtaKindField(client: PrismaClient): boolean {
+  const fields = getCourseRuntimeFields(client);
+  if (!Array.isArray(fields)) {
+    return true;
+  }
+  return fields.some((f) => f.name === "ctaKind");
+}
+
+/** Course 需含 learnOutcomesText／targetAudienceText */
+function clientCourseHasLearnAudienceFields(client: PrismaClient): boolean {
+  const fields = getCourseRuntimeFields(client);
+  if (!Array.isArray(fields)) {
+    return true;
+  }
+  return (
+    fields.some((f) => f.name === "learnOutcomesText") &&
+    fields.some((f) => f.name === "targetAudienceText")
+  );
+}
+
+function clientMatchesCurrentSchema(client: PrismaClient): boolean {
+  return (
+    clientHasBannerDelegate(client) &&
+    clientCourseHasCtaKindField(client) &&
+    clientCourseHasLearnAudienceFields(client)
+  );
+}
+
 function resolvePrisma(): PrismaClient {
   const isProd = process.env.NODE_ENV === "production";
 
   if (isProd) {
     const existing = globalForPrisma.prisma;
-    if (existing && clientHasBannerDelegate(existing)) {
+    if (existing && clientMatchesCurrentSchema(existing)) {
       return existing;
     }
     if (existing) {
@@ -31,9 +72,9 @@ function resolvePrisma(): PrismaClient {
     return makeClient();
   }
 
-  // 開發模式：global 上的舊實例常缺少 prisma.generate 後新增的 delegate
+  // 開發模式：global 上的舊實例常缺少 prisma.generate 後新增的欄位／delegate
   const existing = globalForPrisma.prisma;
-  if (existing && clientHasBannerDelegate(existing)) {
+  if (existing && clientMatchesCurrentSchema(existing)) {
     return existing;
   }
 
@@ -44,9 +85,9 @@ function resolvePrisma(): PrismaClient {
   const fresh = makeClient();
   globalForPrisma.prisma = fresh;
 
-  if (!clientHasBannerDelegate(fresh)) {
+  if (!clientMatchesCurrentSchema(fresh)) {
     console.error(
-      "[db] PrismaClient 缺少 banner（findMany）。請執行：npx prisma generate，並完全重啟 next dev（必要時刪除 .next）。",
+      "[db] PrismaClient 與 schema 不同步（需含 Banner、Course.ctaKind、learnOutcomesText 等）。請執行：npx prisma generate，並完全重啟 next dev（必要時刪除 .next）。",
     );
   }
 

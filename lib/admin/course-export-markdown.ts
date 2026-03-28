@@ -1,3 +1,4 @@
+import { resolveCourseCtaPair } from "@/lib/course-cta";
 import type {
   Category,
   Course,
@@ -51,12 +52,45 @@ export function exportCourseToMarkdown(course: CourseWithDetail): string {
   chunks.push(
     `| 特價 | ${course.discountedPrice == null ? "-" : `NT$ ${Math.round(course.discountedPrice).toLocaleString("zh-TW")}`} |`,
   );
+  const ctaKindLabel = course.ctaKind === "SUBSIDY" ? "補助課" : "購物車";
+  chunks.push(`| CTA 類型 | ${ctaKindLabel} |`);
+  const cta = resolveCourseCtaPair(course);
   chunks.push(
-    `| CTA 按鈕一 | ${mdEscape((course.ctaCartText ?? "加入購物車").trim() || "加入購物車")} -> ${mdEscape((course.ctaCartUrl ?? "/cart").trim() || "/cart")} |`,
+    `| CTA 按鈕一（外框） | ${mdEscape(cta.outline.text)} -> ${mdEscape(cta.outline.href)} |`,
   );
   chunks.push(
-    `| CTA 按鈕二 | ${mdEscape((course.ctaBuyText ?? "立即購買").trim() || "立即購買")} -> ${mdEscape((course.ctaBuyUrl ?? "/checkout").trim() || "/checkout")} |`,
+    `| CTA 按鈕二（實心） | ${mdEscape(cta.solid.text)} -> ${mdEscape(cta.solid.href)} |`,
   );
+
+  const c = course as Course & {
+    infoDurationText?: string | null;
+    infoStructureText?: string | null;
+    infoResourcesText?: string | null;
+    infoCertificateText?: string | null;
+  };
+  const infoDur = c.infoDurationText?.trim();
+  const infoStruct = c.infoStructureText?.trim();
+  const infoRes = c.infoResourcesText?.trim();
+  const infoCert = c.infoCertificateText?.trim();
+  if (infoDur || infoStruct || infoRes || infoCert) {
+    chunks.push("");
+    chunks.push("## 前台側欄｜課程資訊");
+    chunks.push("");
+    chunks.push("| 項目 | 內容 |");
+    chunks.push("| --- | --- |");
+    if (infoDur) {
+      chunks.push(`| 課程時長 | ${mdEscape(infoDur)} |`);
+    }
+    if (infoStruct) {
+      chunks.push(`| 單元結構 | ${mdEscape(infoStruct)} |`);
+    }
+    if (infoRes) {
+      chunks.push(`| 學習資源 | ${mdEscape(infoRes)} |`);
+    }
+    if (infoCert) {
+      chunks.push(`| 完訓證明 | ${mdEscape(infoCert)} |`);
+    }
+  }
 
   if (course.subtitle?.trim()) {
     chunks.push("");
@@ -70,6 +104,22 @@ export function exportCourseToMarkdown(course: CourseWithDetail): string {
     chunks.push("## 課程介紹");
     chunks.push("");
     chunks.push(course.description.trim());
+  }
+
+  const learnOut = linesFor(course.learnOutcomesText);
+  if (learnOut.length > 0) {
+    chunks.push("");
+    chunks.push("## 你可以學到");
+    chunks.push("");
+    for (const line of learnOut) chunks.push(`- ${line}`);
+  }
+
+  const audienceLines = linesFor(course.targetAudienceText);
+  if (audienceLines.length > 0) {
+    chunks.push("");
+    chunks.push("## 適合對象");
+    chunks.push("");
+    for (const line of audienceLines) chunks.push(`- ${line}`);
   }
 
   const prerequisite = linesFor(course.prerequisiteText);
