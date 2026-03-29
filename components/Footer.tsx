@@ -33,6 +33,7 @@ const FALLBACK_COL2: { label: string; href: string }[] = [
   { label: "媒體素材", href: "#" },
 ];
 const FALLBACK_COL3: { label: string; href: string }[] = [
+  { label: "關於我們", href: "/about" },
   { label: "常見問題", href: "#" },
   { label: "聯絡我們", href: "#" },
   { label: "服務條款", href: "#" },

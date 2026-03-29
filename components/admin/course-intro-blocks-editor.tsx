@@ -3,6 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  embedUrlFromVideoPage,
+  isProbablyDirectVideoFile,
+} from "@/lib/course-intro-embed";
 import type { IntroBlock } from "@/lib/validation/intro-blocks";
 import { cn } from "@/lib/utils";
 import {
@@ -13,9 +17,165 @@ import {
   Image as ImageIcon,
   Trash2,
 } from "lucide-react";
+import { useState } from "react";
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+/** 足以嘗試載入媒體預覽（避免僅「https://」就發請求） */
+function looksLikeHttpsMediaUrl(url: string): boolean {
+  const u = url.trim();
+  return /^https:\/\/.{4,}/i.test(u);
+}
+
+function IntroImageAdminPreview({
+  url,
+  caption,
+}: {
+  url: string;
+  caption: string | null;
+}) {
+  const [broken, setBroken] = useState(false);
+
+  if (!looksLikeHttpsMediaUrl(url)) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        輸入完整的圖片 https 網址後，將顯示預覽。
+      </p>
+    );
+  }
+
+  if (broken) {
+    return (
+      <p className="text-xs text-destructive">
+        無法載入圖片，請確認網址是否可公開存取。
+      </p>
+    );
+  }
+
+  return (
+    <figure className="space-y-2">
+      {/* eslint-disable-next-line @next/next/no-img-element -- 後台預覽任意 HTTPS 圖床 */}
+      <img
+        src={url.trim()}
+        alt={caption?.trim() || ""}
+        className="max-h-64 w-full rounded-md border border-border bg-muted/30 object-contain"
+        onError={() => setBroken(true)}
+      />
+      {caption?.trim() ? (
+        <figcaption className="text-center text-xs text-muted-foreground">
+          {caption.trim()}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+function IntroVideoAdminPreview({
+  url,
+  caption,
+}: {
+  url: string;
+  caption: string | null;
+}) {
+  const trimmed = url.trim();
+  if (!looksLikeHttpsMediaUrl(trimmed)) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        輸入完整的影片 https 網址後，將顯示預覽。
+      </p>
+    );
+  }
+
+  const embed = embedUrlFromVideoPage(trimmed);
+  if (embed) {
+    return (
+      <div className="space-y-2">
+        <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-black">
+          <iframe
+            key={trimmed}
+            title={caption?.trim() || "影片預覽"}
+            src={embed}
+            className="absolute inset-0 size-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+        {caption?.trim() ? (
+          <p className="text-center text-xs text-muted-foreground">
+            {caption.trim()}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (isProbablyDirectVideoFile(trimmed)) {
+    return (
+      <div className="space-y-2">
+        <video
+          key={trimmed}
+          controls
+          className="max-h-64 w-full rounded-md border border-border bg-black"
+          src={trimmed}
+        >
+          無法在此預覽，請改用支援的瀏覽器。
+        </video>
+        {caption?.trim() ? (
+          <p className="text-center text-xs text-muted-foreground">
+            {caption.trim()}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-xs text-muted-foreground">
+      無法嵌入預覽此連結。儲存後，前台將顯示「開啟影片連結」或請改為 YouTube／Vimeo／直接
+      .mp4 網址。
+    </p>
+  );
+}
+
+function IntroTextAdminPreview({ body }: { body: string }) {
+  if (!body.trim()) {
+    return (
+      <p className="text-xs italic text-muted-foreground">（尚無內容）</p>
+    );
+  }
+  return (
+    <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+      {body}
+    </p>
+  );
+}
+
+function IntroBlockAdminPreview({ block }: { block: IntroBlock }) {
+  return (
+    <div
+      className="mt-3 border-t border-border pt-3"
+      aria-label="區塊預覽"
+    >
+      <p className="mb-2 text-xs font-medium text-muted-foreground">預覽</p>
+      <div className="rounded-md border border-dashed border-border bg-background/80 px-3 py-3">
+        {block.type === "text" ? (
+          <IntroTextAdminPreview body={block.body} />
+        ) : null}
+        {block.type === "image" ? (
+          <IntroImageAdminPreview
+            key={block.url}
+            url={block.url}
+            caption={block.caption}
+          />
+        ) : null}
+        {block.type === "video" ? (
+          <IntroVideoAdminPreview url={block.url} caption={block.caption} />
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 type Props = {
@@ -188,6 +348,7 @@ export function CourseIntroBlocksEditor({
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     placeholder="純文字，支援換行"
                   />
+                  <IntroBlockAdminPreview block={block} />
                 </div>
               ) : null}
 
@@ -225,6 +386,7 @@ export function CourseIntroBlocksEditor({
                       }
                     />
                   </div>
+                  <IntroBlockAdminPreview block={block} />
                 </div>
               ) : null}
 
@@ -264,6 +426,7 @@ export function CourseIntroBlocksEditor({
                       }
                     />
                   </div>
+                  <IntroBlockAdminPreview block={block} />
                 </div>
               ) : null}
             </li>
