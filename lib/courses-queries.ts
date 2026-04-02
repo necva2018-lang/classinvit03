@@ -1,6 +1,7 @@
 import { mapPrismaCourse } from "@/lib/course-mapper";
 import { prisma } from "@/lib/db";
 import { isDatabaseConfigured } from "@/lib/env";
+import { withServerQueryTimeout } from "@/lib/server-query-timeout";
 import { isLikelyDbId } from "@/lib/id-guard";
 import type { IntroBlock } from "@/lib/validation/intro-blocks";
 import { parseIntroBlocksFromJson } from "@/lib/validation/intro-blocks";
@@ -202,10 +203,12 @@ export async function fetchPublicCategories(): Promise<{
     return { data: [], error: null };
   }
   try {
-    const rows = await prisma.category.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true },
-    });
+    const rows = await withServerQueryTimeout(
+      prisma.category.findMany({
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true },
+      }),
+    );
     return { data: rows, error: null };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -227,11 +230,13 @@ export async function fetchCourses(): Promise<{
   }
 
   try {
-    const rows = await prisma.course.findMany({
-      where: { isPublished: true },
-      include: courseInclude,
-      orderBy: { createdAt: "asc" },
-    });
+    const rows = await withServerQueryTimeout(
+      prisma.course.findMany({
+        where: { isPublished: true },
+        include: courseInclude,
+        orderBy: { createdAt: "asc" },
+      }),
+    );
     return { data: rows.map(mapPrismaCourse), error: null };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -254,10 +259,12 @@ export async function fetchCourseById(
   }
 
   try {
-    const row = await prisma.course.findFirst({
-      where: { id, isPublished: true },
-      include: courseInclude,
-    });
+    const row = await withServerQueryTimeout(
+      prisma.course.findFirst({
+        where: { id, isPublished: true },
+        include: courseInclude,
+      }),
+    );
     if (!row) return { data: null, error: null };
     return { data: mapPrismaCourse(row), error: null };
   } catch (e) {
@@ -279,13 +286,15 @@ export async function fetchPublishedCourseDetail(
   }
 
   try {
-    const row = await prisma.course.findFirst({
-      where: { id, isPublished: true },
-      include: {
-        ...courseInclude,
-        ...curriculumInclude,
-      },
-    });
+    const row = await withServerQueryTimeout(
+      prisma.course.findFirst({
+        where: { id, isPublished: true },
+        include: {
+          ...courseInclude,
+          ...curriculumInclude,
+        },
+      }),
+    );
     if (!row) return { data: null, error: null };
 
     const course = mapPrismaCourse(row);
