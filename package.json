@@ -21,7 +21,8 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "local:db": "docker compose up -d && node scripts/wait-for-postgres.mjs",
-    "local:init": "docker compose up -d && node scripts/wait-for-postgres.mjs && npm run db:deploy && npm run db:seed"
+    "local:init": "docker compose up -d && node scripts/wait-for-postgres.mjs && npm run db:deploy && npm run db:seed",
+    "win:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/win-local-all.ps1"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
