@@ -1,3 +1,4 @@
+import { CourseCardCover } from "@/components/course/CourseCardCover";
 import { StarRating } from "@/components/course/StarRating";
 import {
   DEFAULT_LISTING_NO_INSTRUCTOR_LINE,
@@ -6,7 +7,6 @@ import {
 import { courseUsesCommerceListingFields } from "@/lib/course-cta";
 import { formatTwd } from "@/lib/format-currency";
 import type { Course } from "@/lib/types/course";
-import Image from "next/image";
 import Link from "next/link";
 
 type Props = {
@@ -28,18 +28,13 @@ export function CourseCard({ course }: Props) {
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-necva-primary/25 hover:shadow-md">
-      <Link href={href} className="relative block aspect-[16/10] overflow-hidden bg-zinc-100">
-        <Image
-          src={course.coverImage}
-          alt={course.title}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition duration-300 group-hover:scale-[1.03]"
-        />
-        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-0.5 text-xs font-semibold text-necva-primary shadow-sm backdrop-blur-sm">
-          {course.category}
-        </span>
-      </Link>
+      <CourseCardCover
+        href={href}
+        src={course.coverImage}
+        alt={course.title}
+        category={course.category}
+        ctaKind={course.ctaKind}
+      />
 
       <div className="flex flex-1 flex-col p-4">
         <h3 className="line-clamp-2 min-h-[2.75rem] text-sm font-semibold leading-snug text-zinc-900 group-hover:text-necva-primary sm:min-h-[3rem] sm:text-base">

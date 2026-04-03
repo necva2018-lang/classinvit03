@@ -12,6 +12,8 @@ model User {
   id          String   @id @default(cuid())
   name        String?
   email       String?  @unique
+  /// bcrypt 雜湊；OAuth／舊資料可為 null（僅 Email＋密碼登入需有值）
+  passwordHash String? @db.Text @map("user_password_hash")
   image       String?
   role        Role     @default(STUDENT)
   createdAt   DateTime @default(now())

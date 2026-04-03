@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { COURSE_FILTER_OPTIONS } from "../lib/course-filters";
 
 const prisma = new PrismaClient();
@@ -80,6 +81,7 @@ async function main() {
     update: { name: "管理員", role: "ADMIN" },
   });
 
+  const demoStudentPasswordHash = await bcrypt.hash("demo1234", 12);
   const student = await prisma.user.upsert({
     where: { email: "student@necva.local" },
     create: {
@@ -87,18 +89,23 @@ async function main() {
       email: "student@necva.local",
       name: "示範學員",
       role: "STUDENT",
+      passwordHash: demoStudentPasswordHash,
     },
-    update: { name: "示範學員" },
+    update: {
+      name: "示範學員",
+      passwordHash: demoStudentPasswordHash,
+    },
   });
 
   const categoryIds: Record<string, string> = {};
   for (let i = 0; i < COURSE_FILTER_OPTIONS.length; i++) {
     const opt = COURSE_FILTER_OPTIONS[i];
     const id = `cm0seedcat${String(i + 1).padStart(2, "0")}`;
+    // update 留空：避免日後再跑 seed 時覆寫後台已調整的類別名稱／排序
     const row = await prisma.category.upsert({
       where: { id },
       create: { id, name: opt.label, sortOrder: i },
-      update: { name: opt.label, sortOrder: i },
+      update: {},
     });
     categoryIds[opt.id] = row.id;
   }

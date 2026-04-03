@@ -1,3 +1,4 @@
+import { NavAuthMobile } from "@/components/navbar/NavAuth";
 import type { NavCategoryLink } from "@/lib/category-nav-links";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
@@ -94,22 +95,7 @@ export function MobileNavDrawer({
             </Link>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4">
-            <Link
-              href="#"
-              className="flex h-11 items-center justify-center rounded-full border border-zinc-300 text-sm font-semibold text-zinc-800"
-              onClick={onClose}
-            >
-              登入
-            </Link>
-            <Link
-              href="#"
-              className="flex h-11 items-center justify-center rounded-full bg-necva-accent text-sm font-semibold text-white"
-              onClick={onClose}
-            >
-              註冊
-            </Link>
-          </div>
+          <NavAuthMobile onNavigate={onClose} />
         </div>
       </div>
     </>

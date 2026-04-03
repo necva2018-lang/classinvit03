@@ -1,6 +1,7 @@
 "use client";
 
 import { CourseMegaMenu } from "@/components/navbar/CourseMegaMenu";
+import { NavAuthDesktop } from "@/components/navbar/NavAuth";
 import { MobileNavDrawer } from "@/components/navbar/MobileNavDrawer";
 import { NavSearchForm } from "@/components/navbar/NavSearchForm";
 import type { NavCategoryLink } from "@/lib/category-nav-links";
@@ -205,18 +206,7 @@ export function Navbar({
               職場力
             </Link>
             <div className="hidden h-6 w-px bg-zinc-200 lg:block" aria-hidden />
-            <Link
-              href="#"
-              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:text-necva-primary lg:inline-flex"
-            >
-              登入
-            </Link>
-            <Link
-              href="#"
-              className="hidden rounded-full bg-necva-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-necva-accent/90 lg:inline-flex"
-            >
-              註冊
-            </Link>
+            <NavAuthDesktop />
 
             <button
               ref={menuButtonRef}

@@ -10,6 +10,8 @@
 
 function isLikelyNextBuildPhase(): boolean {
   if (process.env.npm_lifecycle_event === "build") return true;
+  /** 子程序（靜態產生頁）可能未繼承 npm_lifecycle_event */
+  if (process.env.NEXT_PHASE === "phase-production-build") return true;
   const joined = process.argv.join(" ");
   return /\bnext\s+build\b/.test(joined);
 }
@@ -96,6 +98,15 @@ export function getMissingRequiredEnv(): string[] {
     if (!lenientDevDb) {
       missing.push("DATABASE_URL");
     }
+  }
+
+  /** 前台會員（Auth.js）正式站須設定，與是否啟用 OAuth 無關 */
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.AUTH_SECRET?.trim() &&
+    !process.env.NEXTAUTH_SECRET?.trim()
+  ) {
+    missing.push("AUTH_SECRET 或 NEXTAUTH_SECRET（會員 Session 加密）");
   }
 
   if (wantsAuth()) {

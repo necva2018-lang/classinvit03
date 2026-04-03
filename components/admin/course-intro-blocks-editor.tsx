@@ -167,11 +167,11 @@ function IntroBlockAdminPreview({ block }: { block: IntroBlock }) {
           <IntroImageAdminPreview
             key={block.url}
             url={block.url}
-            caption={block.caption}
+            caption={block.caption ?? null}
           />
         ) : null}
         {block.type === "video" ? (
-          <IntroVideoAdminPreview url={block.url} caption={block.caption} />
+          <IntroVideoAdminPreview url={block.url} caption={block.caption ?? null} />
         ) : null}
       </div>
     </div>
