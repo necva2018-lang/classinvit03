@@ -262,7 +262,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="relative mx-auto aspect-square w-full max-w-[520px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md lg:mx-0 lg:max-w-none">
+            <div className="relative mx-auto aspect-[1280/850] w-full max-w-[520px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md lg:mx-0 lg:max-w-none">
               <Image
                 src={course.coverImage}
                 alt={course.title}
