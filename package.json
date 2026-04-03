@@ -17,6 +17,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:sync-categories": "tsx scripts/sync-categories-from-filters.ts",
+    "db:prune-audit-logs": "tsx scripts/prune-audit-logs.ts",
     "db:studio": "prisma studio",
     "check:db-url": "node scripts/validate-database-url-format.mjs",
     "docker:up": "docker compose up -d",

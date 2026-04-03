@@ -1,4 +1,5 @@
 import { resolveAuthSecret } from "@/lib/auth-secret";
+import { getAuditRequestMeta } from "@/lib/audit/request-meta";
 import { verifyPassword } from "@/lib/password";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
@@ -26,24 +27,111 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
+        const { prisma } = await import("@/lib/db");
+        const meta = getAuditRequestMeta(request);
+
+        async function logAttempt(params: {
+          emailInput?: string | null;
+          userId?: string | null;
+          status: "SUCCESS" | "FAIL";
+          failureCode?:
+            | "INVALID_INPUT"
+            | "USER_NOT_FOUND"
+            | "PASSWORD_NOT_SET"
+            | "INVALID_PASSWORD"
+            | "USER_DISABLED";
+        }) {
+          try {
+            await prisma.authLoginLog.create({
+              data: {
+                userId: params.userId ?? null,
+                emailInput: params.emailInput ?? null,
+                status: params.status,
+                failureCode:
+                  params.status === "FAIL" ? params.failureCode : null,
+                ipHash: meta.ipHash,
+                userAgent: meta.userAgent,
+              },
+            });
+          } catch (e) {
+            console.error("[auth] 寫入 AuthLoginLog 失敗", e);
+          }
+        }
+
         const emailRaw = credentials?.email;
         const passwordRaw = credentials?.password;
+        const normalizedEmailForLog =
+          typeof emailRaw === "string"
+            ? emailRaw.trim().toLowerCase().slice(0, 320)
+            : null;
         if (typeof emailRaw !== "string" || typeof passwordRaw !== "string") {
+          await logAttempt({
+            emailInput: normalizedEmailForLog,
+            status: "FAIL",
+            failureCode: "INVALID_INPUT",
+          });
           return null;
         }
         const email = emailRaw.trim().toLowerCase();
         const password = passwordRaw.trim();
-        if (!email || !password) return null;
+        if (!email || !password) {
+          await logAttempt({
+            emailInput: normalizedEmailForLog,
+            status: "FAIL",
+            failureCode: "INVALID_INPUT",
+          });
+          return null;
+        }
 
-        const { prisma } = await import("@/lib/db");
         const user = await prisma.user.findUnique({
           where: { email },
         });
-        if (!user?.passwordHash) return null;
+        if (!user) {
+          await logAttempt({
+            emailInput: email,
+            status: "FAIL",
+            failureCode: "USER_NOT_FOUND",
+          });
+          return null;
+        }
+
+        if (!user.isActive) {
+          await logAttempt({
+            emailInput: email,
+            userId: user.id,
+            status: "FAIL",
+            failureCode: "USER_DISABLED",
+          });
+          return null;
+        }
+
+        if (!user.passwordHash) {
+          await logAttempt({
+            emailInput: email,
+            userId: user.id,
+            status: "FAIL",
+            failureCode: "PASSWORD_NOT_SET",
+          });
+          return null;
+        }
 
         const ok = await verifyPassword(password, user.passwordHash);
-        if (!ok) return null;
+        if (!ok) {
+          await logAttempt({
+            emailInput: email,
+            userId: user.id,
+            status: "FAIL",
+            failureCode: "INVALID_PASSWORD",
+          });
+          return null;
+        }
+
+        await logAttempt({
+          emailInput: email,
+          userId: user.id,
+          status: "SUCCESS",
+        });
 
         return {
           id: user.id,

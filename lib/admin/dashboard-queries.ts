@@ -13,6 +13,11 @@ export type DashboardSnapshot = {
   newStudentsThisMonth: number;
   categorySlices: CategorySlice[];
   recentActivity: ActivityFeedItem[];
+  viewAudience: "all" | "members" | "visitors";
+  courseDetailViews30d: number;
+  uniqueViewers30d: number;
+  courseViewTopCourses30d: { courseId: string; title: string; views: number }[];
+  courseViewTrend14d: { date: string; views: number }[];
 };
 
 function startOfCurrentMonth(): Date {
@@ -23,7 +28,21 @@ function startOfCurrentMonth(): Date {
 }
 
 /** 以「當前課程牌價／特價」估算總營收（每筆 Enrollment 計一次） */
-export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+export async function getDashboardSnapshot(params?: {
+  viewAudience?: "all" | "members" | "visitors";
+}): Promise<DashboardSnapshot> {
+  const viewAudience = params?.viewAudience ?? "all";
+  const viewSince30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const trendSince14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const viewWhere = {
+    createdAt: { gte: viewSince30d },
+    ...(viewAudience === "members"
+      ? { userId: { not: null as string | null } }
+      : viewAudience === "visitors"
+        ? { userId: null as string | null }
+        : {}),
+  };
+
   const [enrollments, newStudentsThisMonth, coursesForCategories, categories, tenMinUsers, tenMinEnrolls] =
     await Promise.all([
       prisma.enrollment.findMany({
@@ -78,6 +97,36 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
         take: 30,
       }),
     ]);
+  const [
+    courseDetailViews30d,
+    distinctMembers30d,
+    distinctVisitors30d,
+    topCourseRows,
+    trendRows,
+  ] = await Promise.all([
+    prisma.courseViewLog.count({ where: viewWhere }),
+    prisma.courseViewLog.findMany({
+      where: { ...viewWhere, userId: { not: null } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+    prisma.courseViewLog.findMany({
+      where: { ...viewWhere, visitorId: { not: null } },
+      select: { visitorId: true },
+      distinct: ["visitorId"],
+    }),
+    prisma.courseViewLog.groupBy({
+      by: ["courseId"],
+      where: viewWhere,
+      _count: { _all: true },
+      orderBy: { _count: { courseId: "desc" } },
+      take: 8,
+    }),
+    prisma.courseViewLog.findMany({
+      where: { ...viewWhere, createdAt: { gte: trendSince14d } },
+      select: { createdAt: true },
+    }),
+  ]);
 
   let totalRevenue = 0;
   for (const e of enrollments) {
@@ -132,11 +181,44 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     detail: r.detail,
   }));
 
+  const courseIds = topCourseRows.map((r) => r.courseId);
+  const courses =
+    courseIds.length > 0
+      ? await prisma.course.findMany({
+          where: { id: { in: courseIds } },
+          select: { id: true, title: true },
+        })
+      : [];
+  const courseTitleMap = new Map(courses.map((c) => [c.id, c.title]));
+  const courseViewTopCourses30d = topCourseRows.map((r) => ({
+    courseId: r.courseId,
+    title: courseTitleMap.get(r.courseId) ?? "（已刪除課程）",
+    views: typeof r._count === "object" ? (r._count._all ?? 0) : 0,
+  }));
+
+  const trendMap = new Map<string, number>();
+  for (const row of trendRows) {
+    const d = row.createdAt.toISOString().slice(0, 10);
+    trendMap.set(d, (trendMap.get(d) ?? 0) + 1);
+  }
+  const courseViewTrend14d: { date: string; views: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    courseViewTrend14d.push({ date: d, views: trendMap.get(d) ?? 0 });
+  }
+
   return {
     totalRevenue,
     newStudentsThisMonth,
     categorySlices,
     recentActivity,
+    viewAudience,
+    courseDetailViews30d,
+    uniqueViewers30d: distinctMembers30d.length + distinctVisitors30d.length,
+    courseViewTopCourses30d,
+    courseViewTrend14d,
   };
 }
 
@@ -172,8 +254,17 @@ export async function getDashboardSnapshotSafe(): Promise<
   | { ok: true; data: DashboardSnapshot }
   | { ok: false; error: string; errorRaw?: string }
 > {
+  return getDashboardSnapshotSafeWithParams({});
+}
+
+export async function getDashboardSnapshotSafeWithParams(params: {
+  viewAudience?: "all" | "members" | "visitors";
+}): Promise<
+  | { ok: true; data: DashboardSnapshot }
+  | { ok: false; error: string; errorRaw?: string }
+> {
   try {
-    const data = await getDashboardSnapshot();
+    const data = await getDashboardSnapshot(params);
     return { ok: true, data };
   } catch (e) {
     const errorRaw = e instanceof Error ? e.message : String(e);

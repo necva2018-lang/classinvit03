@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Megaphone, PlusCircle, Receipt } from "lucide-react";
+import { Megaphone, PlusCircle, Receipt, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 
 const actions = [
@@ -16,6 +16,13 @@ const actions = [
     description: "依購買時間瀏覽 Enrollment",
     icon: Receipt,
     variant: "secondary" as const,
+  },
+  {
+    href: "/admin/members",
+    label: "會員管理",
+    description: "改角色、停用帳號、查看登入/瀏覽紀錄",
+    icon: UserRoundCog,
+    variant: "outline" as const,
   },
   {
     href: "/admin/settings",
@@ -35,7 +42,7 @@ export function DashboardQuickActions() {
       >
         快捷操作
       </h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {actions.map(({ href, label, description, icon: Icon, variant }) => (
           <Button
             key={href}

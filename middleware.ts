@@ -11,6 +11,14 @@ export async function middleware(request: NextRequest) {
   }
 
   const secureCookie = request.nextUrl.protocol === "https:";
+  const pathname = request.nextUrl.pathname;
+  const isMe = pathname.startsWith("/me");
+  const isAdmin = pathname.startsWith("/admin");
+
+  if (!isMe && !isAdmin) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret,
@@ -27,9 +35,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (isAdmin && token.role !== "ADMIN") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.searchParams.set("denied", "admin");
+    return NextResponse.redirect(url);
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/me/:path*"],
+  matcher: ["/me/:path*", "/admin/:path*"],
 };

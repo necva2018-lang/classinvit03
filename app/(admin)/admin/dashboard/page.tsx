@@ -3,11 +3,12 @@ import { DashboardQuickActions } from "@/components/admin/dashboard-quick-action
 import { DashboardRecentActivity } from "@/components/admin/dashboard-recent-activity";
 import {
   dashboardLoadHints,
-  getDashboardSnapshotSafe,
+  getDashboardSnapshotSafeWithParams,
 } from "@/lib/admin/dashboard-queries";
 import { isDatabaseConfigured } from "@/lib/env";
 import { DollarSign, PieChartIcon, Users } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "儀表板",
@@ -17,7 +18,22 @@ function formatTwd(n: number) {
   return `NT$${Math.round(n).toLocaleString("zh-TW")}`;
 }
 
-export default async function AdminDashboardPage() {
+function audienceLabel(v: "all" | "members" | "visitors") {
+  if (v === "members") return "僅會員";
+  if (v === "visitors") return "僅訪客";
+  return "全部（含訪客）";
+}
+
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ audience?: string }>;
+}) {
+  const sp = await searchParams;
+  const audience =
+    sp.audience === "members" || sp.audience === "visitors"
+      ? sp.audience
+      : "all";
   if (!isDatabaseConfigured()) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
@@ -29,7 +45,9 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  const result = await getDashboardSnapshotSafe();
+  const result = await getDashboardSnapshotSafeWithParams({
+    viewAudience: audience,
+  });
   if (!result.ok) {
     const hints = dashboardLoadHints(result.errorRaw ?? result.error);
     const showTech =
@@ -75,6 +93,22 @@ export default async function AdminDashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           關鍵指標、課程結構與即時動態一次掌握。
         </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground">課程瀏覽統計：</span>
+          {(["all", "members", "visitors"] as const).map((k) => (
+            <Link
+              key={k}
+              href={k === "all" ? "/admin/dashboard" : `/admin/dashboard?audience=${k}`}
+              className={`rounded-full border px-2.5 py-1 transition ${
+                audience === k
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {audienceLabel(k)}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -112,6 +146,30 @@ export default async function AdminDashboardPage() {
           </p>
           <p className="mt-2 text-xs text-muted-foreground">全站課程總數（右側圓餅圖）</p>
         </article>
+        <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Users className="size-4 text-sky-600" aria-hidden />
+            課程詳情頁瀏覽（30 天）
+          </div>
+          <p className="mt-3 text-3xl font-bold tabular-nums tracking-tight text-foreground">
+            {snap.courseDetailViews30d.toLocaleString("zh-TW")}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            範圍：{audienceLabel(snap.viewAudience)}
+          </p>
+        </article>
+        <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Users className="size-4 text-indigo-600" aria-hidden />
+            不重複瀏覽者（30 天）
+          </div>
+          <p className="mt-3 text-3xl font-bold tabular-nums tracking-tight text-foreground">
+            {snap.uniqueViewers30d.toLocaleString("zh-TW")}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            依 userId / visitorId 聚合
+          </p>
+        </article>
       </div>
 
       <DashboardQuickActions />
@@ -119,6 +177,59 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <DashboardCategoryChart data={snap.categorySlices} />
         <DashboardRecentActivity items={snap.recentActivity} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-foreground">課程詳情頁瀏覽排行（30 天）</h2>
+          <div className="mt-4 space-y-3">
+            {snap.courseViewTopCourses30d.length === 0 ? (
+              <p className="text-sm text-muted-foreground">尚無瀏覽紀錄。</p>
+            ) : (
+              snap.courseViewTopCourses30d.map((row, idx) => (
+                <div key={row.courseId} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 text-sm">
+                    <p className="truncate font-medium text-foreground">
+                      {idx + 1}. {row.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{row.courseId}</p>
+                  </div>
+                  <p className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
+                    {row.views.toLocaleString("zh-TW")}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-foreground">14 天瀏覽趨勢</h2>
+          <div className="mt-4 grid gap-2">
+            {snap.courseViewTrend14d.map((r) => (
+              <div key={r.date} className="grid grid-cols-[92px_1fr_52px] items-center gap-2 text-xs">
+                <span className="text-muted-foreground">{r.date.slice(5)}</span>
+                <div className="h-2 rounded bg-muted">
+                  <div
+                    className="h-2 rounded bg-primary/70"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (r.views /
+                          Math.max(
+                            1,
+                            ...snap.courseViewTrend14d.map((x) => x.views),
+                          )) *
+                          100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-right tabular-nums text-foreground">{r.views}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

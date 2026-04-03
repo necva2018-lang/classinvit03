@@ -1,5 +1,6 @@
 import { CourseDetailSidebar } from "@/components/course/course-detail-sidebar";
 import { CourseDetailTabs } from "@/components/course/course-detail-tabs";
+import { CourseViewTracker } from "@/components/course/course-view-tracker";
 import { StarRating } from "@/components/course/StarRating";
 import {
   linesFromMultilineFieldStrict,
@@ -156,6 +157,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-1 flex-col bg-white">
+      <CourseViewTracker courseId={course.id} />
       <div className="border-b border-zinc-100 bg-zinc-50/80">
         <nav
           className="mx-auto max-w-6xl px-4 py-3 text-sm text-zinc-600 sm:px-6 lg:px-8"

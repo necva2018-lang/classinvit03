@@ -14,11 +14,15 @@ model User {
   email       String?  @unique
   /// bcrypt 雜湊；OAuth／舊資料可為 null（僅 Email＋密碼登入需有值）
   passwordHash String? @db.Text @map("user_password_hash")
+  /// 後台會員管理：停用後不可登入（資料保留，不做硬刪）
+  isActive    Boolean  @default(true) @map("is_active")
   image       String?
   role        Role     @default(STUDENT)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   enrollments Enrollment[]
+  loginLogs   AuthLoginLog[]
+  courseViewLogs CourseViewLog[]
 }
 
 enum Role {
@@ -36,6 +40,19 @@ enum CourseStatus {
 enum CourseCtaKind {
   CART
   SUBSIDY
+}
+
+enum AuthLoginStatus {
+  SUCCESS
+  FAIL
+}
+
+enum AuthLoginFailureCode {
+  INVALID_INPUT
+  USER_NOT_FOUND
+  PASSWORD_NOT_SET
+  INVALID_PASSWORD
+  USER_DISABLED
 }
 
 // 課程分類 (如：人工智慧、網頁前端)
@@ -97,6 +114,7 @@ model Course {
   sections       Section[]
   enrollments    Enrollment[]
   announcements  CourseAnnouncement[]
+  viewLogs       CourseViewLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,4 +189,41 @@ model Enrollment {
   createdAt DateTime @default(now())
 
   @@unique([userId, courseId])
+}
+
+/// 會員登入紀錄（成功/失敗）
+model AuthLoginLog {
+  id           String               @id @default(cuid())
+  userId       String?
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// 表單輸入 email（失敗時也可追蹤），統一小寫儲存
+  emailInput   String?              @map("email_input")
+  status       AuthLoginStatus
+  failureCode  AuthLoginFailureCode? @map("failure_code")
+  ipHash       String?              @map("ip_hash")
+  userAgent    String?              @db.Text @map("user_agent")
+  createdAt    DateTime             @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// 課程詳情頁瀏覽紀錄（含會員與訪客）
+model CourseViewLog {
+  id         String   @id @default(cuid())
+  courseId   String   @map("course_id")
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// 訪客識別 cookie；會員也會帶入，供跨登入前後關聯分析
+  visitorId  String?  @map("visitor_id")
+  ipHash     String?  @map("ip_hash")
+  userAgent  String?  @db.Text @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([courseId, createdAt])
+  @@index([userId, createdAt])
+  @@index([visitorId, createdAt])
 }
