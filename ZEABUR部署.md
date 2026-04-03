@@ -14,7 +14,35 @@
 | 變數 | 必填 | 說明 |
 |------|------|------|
 | `DATABASE_URL` | 是 | 綁定 PostgreSQL 後通常會自動帶入；請確認 **Build 階段**也有值（`prisma generate` 在 `postinstall` / `build` 會用到）。 |
+| `AUTH_SECRET` 或 `NEXTAUTH_SECRET` | 正式站必填 | Auth.js／會員 Session 加密用，**擇一即可**（建議名稱用 `AUTH_SECRET`）。未設定時前台會出現「環境變數未就緒」說明頁（`EnvGate`）。 |
 | `NEXT_PUBLIC_SITE_URL` | 強烈建議 | 正式網址，例如 `https://你的子網域.zeabur.app`。供 `metadataBase`、OG、canonical；**勿留空字串**。可先部署一次取得網址後再補，並 **Redeploy** 讓建置讀到新值。 |
+
+### 二之一、`AUTH_SECRET` 怎麼產生（Windows 無 openssl 時）
+
+本機有 Node 時（本專案必備），在 PowerShell／cmd 執行：
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+將輸出的**一整行**貼到 Zeabur（**勿加引號**）。**請自行在本機產生並保密**，不要把密鑰貼在 GitHub Issue、聊天或 commit 裡。
+
+純 PowerShell（無 Node 時）：
+
+```powershell
+$b = New-Object byte[] 32
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+[Convert]::ToBase64String($b)
+```
+
+### 二之二、在 Zeabur 設定 `AUTH_SECRET`
+
+1. Zeabur → **你的專案** → 點 **Web** 服務（Next.js，不是 PostgreSQL）。
+2. 開啟 **Variables**／**環境變數**。
+3. **新增**：Key 為 `AUTH_SECRET`，Value 貼上你產生的字串。
+4. **儲存**後對 Web 服務執行 **Redeploy**／**Restart**，變數才會進入執行中的容器。
+
+**勿**在正式站設定 `NEXTAUTH_URL`，除非你真的要接 Google OAuth；設了會強制檢查 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET`，未填會無法通過環境檢查。見 `lib/env-check.ts` 的 `wantsAuth()`。
 
 **關於 `NEXT_PUBLIC_*`：** Next.js 會在 **建置（build）** 時把 `NEXT_PUBLIC_SITE_URL` 編進前端；若只在 Runtime 設定、未重建映像，部分 SEO／絕對網址可能仍為舊值。
 
@@ -57,8 +85,9 @@ npm run db:seed
 ## 五、部署後驗證
 
 1. 開啟 Web 服務網址首頁。
-2. 開啟 `/admin/courses` 確認後台可讀寫（**正式上線前請補強 `/admin` 權限**，見 `README.md`）。
-3. 若首頁或課程頁報「環境變數」錯誤，檢查 `DATABASE_URL` 是否在 **Build + Runtime** 皆有值。
+2. 若出現「伺服器缺少下列變數」清單，依畫面補齊 **Variables** 後 **Redeploy**（常見為缺 `AUTH_SECRET` 或 `DATABASE_URL`）。
+3. 開啟 `/admin/courses` 確認後台可讀寫（**正式上線前請補強 `/admin` 權限**，見 `README.md`）。
+4. 若首頁或課程頁仍有錯誤，檢查 `DATABASE_URL` 是否在 **Build + Runtime** 皆有值，並查看 Web 服務 **Logs**。
 
 ## 六、安全提醒
 
