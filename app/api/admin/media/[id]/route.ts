@@ -4,6 +4,7 @@ import {
   getMediaAssetWithUsages,
   mediaPublicUrl,
   setMediaAssetStatus,
+  setMediaAssetTags,
 } from "@/lib/media/core";
 
 export const runtime = "nodejs";
@@ -28,6 +29,7 @@ export async function GET(
       kind: row.kind,
       status: row.status,
       originalName: row.originalName,
+      tags: row.tags,
       mimeType: row.mimeType,
       sizeBytes: row.sizeBytes,
       youtubeUrl: row.youtubeUrl,
@@ -54,7 +56,7 @@ export async function PATCH(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
   const { id } = await context.params;
-  let payload: { status?: unknown };
+  let payload: { status?: unknown; tags?: unknown };
   try {
     payload = (await request.json()) as { status?: unknown };
   } catch {
@@ -64,10 +66,20 @@ export async function PATCH(
     payload.status === "ACTIVE" || payload.status === "ARCHIVED"
       ? payload.status
       : null;
-  if (!nextStatus) {
-    return NextResponse.json({ error: "INVALID_STATUS" }, { status: 400 });
+  const nextTags = Array.isArray(payload.tags)
+    ? payload.tags.filter((x): x is string => typeof x === "string")
+    : null;
+  if (!nextStatus && nextTags == null) {
+    return NextResponse.json({ error: "INVALID_PAYLOAD" }, { status: 400 });
   }
-  const updated = await setMediaAssetStatus(id, nextStatus);
+  const updated =
+    nextStatus && nextTags != null
+      ? await setMediaAssetTags(id, nextTags).then((r) =>
+          r ? setMediaAssetStatus(id, nextStatus) : null,
+        )
+      : nextStatus
+        ? await setMediaAssetStatus(id, nextStatus)
+        : await setMediaAssetTags(id, nextTags ?? []);
   if (!updated) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
@@ -76,6 +88,7 @@ export async function PATCH(
     item: {
       id: updated.id,
       status: updated.status,
+      tags: updated.tags,
     },
   });
 }

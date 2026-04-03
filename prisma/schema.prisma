@@ -247,6 +247,8 @@ model MediaAsset {
   status      MediaStatus @default(ACTIVE)
 
   originalName String? @map("original_name")
+  /// 自訂標籤（用於分類/搜尋）
+  tags         String[] @default([])
   mimeType     String? @map("mime_type")
   sizeBytes    Int?    @map("size_bytes")
   sha256       String? @map("sha256")

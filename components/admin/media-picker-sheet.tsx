@@ -217,7 +217,11 @@ export function MediaPickerSheet({
                   </TableRow>
                 ) : (
                   shownItems.map((item) => {
-                    const url = item.publicUrl;
+                    const previewUrl = item.publicUrl;
+                    const applyUrl =
+                      item.kind === "YOUTUBE"
+                        ? (item.youtubeUrl ?? item.publicUrl)
+                        : item.publicUrl;
                     const youtubeId = parseYoutubeVideoId(item.youtubeUrl);
                     const youtubeThumb = youtubeId
                       ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`
@@ -228,7 +232,7 @@ export function MediaPickerSheet({
                           {item.kind === "IMAGE" ? (
                             <div className="relative aspect-[4/3] w-14 overflow-hidden rounded border border-border bg-muted">
                               <Image
-                                src={url}
+                                src={previewUrl}
                                 alt={item.originalName || item.id}
                                 fill
                                 unoptimized
@@ -256,7 +260,7 @@ export function MediaPickerSheet({
                             {item.originalName || item.id}
                           </div>
                           <code className="line-clamp-1 text-xs text-muted-foreground">
-                            {item.kind === "YOUTUBE" ? item.youtubeUrl || url : url}
+                            {item.kind === "YOUTUBE" ? item.youtubeUrl || applyUrl : applyUrl}
                           </code>
                         </TableCell>
                         <TableCell className="tabular-nums text-muted-foreground">
@@ -271,7 +275,7 @@ export function MediaPickerSheet({
                             size="sm"
                             onClick={() => {
                               rememberRecent(item);
-                              onSelect(url);
+                              onSelect(applyUrl);
                               onOpenChange(false);
                             }}
                           >

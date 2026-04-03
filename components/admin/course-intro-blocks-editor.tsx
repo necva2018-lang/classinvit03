@@ -24,10 +24,13 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
-/** 足以嘗試載入媒體預覽（避免僅「https://」就發請求） */
-function looksLikeHttpsMediaUrl(url: string): boolean {
+/** 足以嘗試載入媒體預覽（避免僅 "https://" 就發請求） */
+function looksLikePreviewableMediaUrl(url: string): boolean {
   const u = url.trim();
-  return /^https:\/\/.{4,}/i.test(u);
+  if (/^https?:\/\/.{4,}/i.test(u)) return true;
+  // 支援站內素材庫路徑，例如 /api/media/:id
+  if (/^\/[^\s]{3,}/.test(u)) return true;
+  return false;
 }
 
 function IntroImageAdminPreview({
@@ -39,10 +42,10 @@ function IntroImageAdminPreview({
 }) {
   const [broken, setBroken] = useState(false);
 
-  if (!looksLikeHttpsMediaUrl(url)) {
+  if (!looksLikePreviewableMediaUrl(url)) {
     return (
       <p className="text-xs text-muted-foreground">
-        輸入完整的圖片 https 網址後，將顯示預覽。
+        輸入圖片網址（https 或站內 /api/media/...）後，將顯示預覽。
       </p>
     );
   }
@@ -81,7 +84,7 @@ function IntroVideoAdminPreview({
   caption: string | null;
 }) {
   const trimmed = url.trim();
-  if (!looksLikeHttpsMediaUrl(trimmed)) {
+  if (!looksLikePreviewableMediaUrl(trimmed)) {
     return (
       <p className="text-xs text-muted-foreground">
         輸入完整的 YouTube 網址後，將顯示預覽。

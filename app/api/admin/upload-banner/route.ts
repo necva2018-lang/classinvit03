@@ -18,12 +18,23 @@ export async function POST(request: Request) {
   }
 
   const file = form.get("file");
+  const losslessOptimizeRaw = String(form.get("losslessOptimize") ?? "")
+    .trim()
+    .toLowerCase();
+  const enableLosslessOptimize =
+    losslessOptimizeRaw === "1" ||
+    losslessOptimizeRaw === "true" ||
+    losslessOptimizeRaw === "on";
   if (!file || !(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "請選擇圖片檔案" }, { status: 400 });
   }
 
   try {
-    const asset = await createImageAssetFromFile(file, { userId: adminUserId });
+    const asset = await createImageAssetFromFile(
+      file,
+      { userId: adminUserId },
+      { enableLosslessOptimizeWhenOversize: enableLosslessOptimize },
+    );
     return NextResponse.json({ url: mediaPublicUrl(asset.id), assetId: asset.id });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "上傳失敗";

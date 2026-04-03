@@ -84,6 +84,8 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
   const [videoUrl, setVideoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [losslessOptimizeOnOversize, setLosslessOptimizeOnOversize] =
+    useState(true);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
@@ -136,6 +138,9 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
     try {
       const fd = new FormData();
       fd.append("file", f);
+      if (losslessOptimizeOnOversize) {
+        fd.append("losslessOptimize", "1");
+      }
       const res = await fetch("/api/admin/upload-banner", {
         method: "POST",
         body: fd,
@@ -368,6 +373,15 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                     <span className="text-xs text-muted-foreground">上傳中…</span>
                   ) : null}
                 </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={losslessOptimizeOnOversize}
+                    onChange={(e) => setLosslessOptimizeOnOversize(e.target.checked)}
+                    className="size-4 rounded border-input"
+                  />
+                  超過 5MB 時，嘗試無損壓縮後再上傳
+                </label>
                 {uploadError ? (
                   <p className="text-sm text-destructive">{uploadError}</p>
                 ) : null}

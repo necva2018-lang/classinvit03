@@ -25,7 +25,7 @@ const FORM_ID = "site-settings-form";
 
 function looksLikeHttpImageUrl(s: string): boolean {
   const t = s.trim();
-  return /^https:\/\/.+/i.test(t);
+  return /^https?:\/\/.+/i.test(t) || /^\/[^\s]{3,}/.test(t);
 }
 
 function LogoUrlRow({

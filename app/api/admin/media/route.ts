@@ -1,5 +1,5 @@
 import { getAdminUserIdForRoute } from "@/lib/admin/admin-auth-route";
-import { listMediaAssets, mediaPublicUrl } from "@/lib/media/core";
+import { listMediaAssets, listMediaTags, mediaPublicUrl } from "@/lib/media/core";
 import type { MediaKind } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -31,9 +31,11 @@ export async function GET(request: Request) {
     kind,
     status,
     q: u.searchParams.get("q") || "",
+    tag: u.searchParams.get("tag") || "",
     page: asPositiveInt(u.searchParams.get("page"), 1),
     pageSize: asPositiveInt(u.searchParams.get("pageSize"), 20),
   });
+  const availableTags = await listMediaTags();
 
   return NextResponse.json({
     ok: true,
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
       kind: r.kind,
       status: r.status,
       originalName: r.originalName,
+      tags: r.tags,
       mimeType: r.mimeType,
       sizeBytes: r.sizeBytes,
       youtubeUrl: r.youtubeUrl,
@@ -55,5 +58,6 @@ export async function GET(request: Request) {
       usageCount: r._count?.usages ?? 0,
       createdAt: r.createdAt,
     })),
+    availableTags,
   });
 }

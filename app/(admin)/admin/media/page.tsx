@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MediaLibraryManager } from "@/components/admin/media-library-manager";
-import { listMediaAssets, mediaPublicUrl } from "@/lib/media/core";
+import { listMediaAssets, listMediaTags, mediaPublicUrl } from "@/lib/media/core";
 import { isDatabaseConfigured } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -26,6 +26,7 @@ export default async function AdminMediaPage() {
     page: 1,
     pageSize: 20,
   });
+  const initialAvailableTags = await listMediaTags();
 
   return (
     <MediaLibraryManager
@@ -34,6 +35,7 @@ export default async function AdminMediaPage() {
         kind: row.kind,
         status: row.status,
         originalName: row.originalName,
+        tags: row.tags,
         mimeType: row.mimeType,
         sizeBytes: row.sizeBytes,
         youtubeUrl: row.youtubeUrl,
@@ -47,6 +49,7 @@ export default async function AdminMediaPage() {
         total: result.total,
         totalPages: result.totalPages,
       }}
+      initialAvailableTags={initialAvailableTags}
     />
   );
 }

@@ -21,6 +21,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "無效的表單資料" }, { status: 400 });
   }
   const kindRaw = String(form.get("kind") ?? "").trim().toLowerCase();
+  const losslessOptimizeRaw = String(form.get("losslessOptimize") ?? "")
+    .trim()
+    .toLowerCase();
+  const enableLosslessOptimize =
+    losslessOptimizeRaw === "1" ||
+    losslessOptimizeRaw === "true" ||
+    losslessOptimizeRaw === "on";
   const file = form.get("file");
   if (!(file instanceof File) || file.size <= 0) {
     return NextResponse.json({ error: "請選擇檔案" }, { status: 400 });
@@ -30,7 +37,11 @@ export async function POST(request: Request) {
     const asset =
       kindRaw === "pdf"
         ? await createPdfAssetFromFile(file, { userId: adminUserId })
-        : await createImageAssetFromFile(file, { userId: adminUserId });
+        : await createImageAssetFromFile(
+            file,
+            { userId: adminUserId },
+            { enableLosslessOptimizeWhenOversize: enableLosslessOptimize },
+          );
 
     return NextResponse.json({
       ok: true,

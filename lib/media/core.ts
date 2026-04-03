@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import sharp from "sharp";
 import { prisma } from "@/lib/db";
 import { ALLOWED_IMAGE_MIME, MEDIA_LIMITS, PDF_MIME } from "@/lib/media/constants";
 import { normalizeYoutubeUrl } from "@/lib/media/youtube";
@@ -31,24 +32,69 @@ export function mediaPublicUrl(id: string): string {
   return `/api/media/${id}`;
 }
 
-export async function createImageAssetFromFile(file: File, by?: UploadBy) {
+async function optimizeImageLosslessToLimit(
+  input: Buffer,
+  maxBytes: number,
+): Promise<{ bytes: Buffer; mimeType: string } | null> {
+  // 先嘗試 lossless WebP（常見可有效降體積）
+  try {
+    const webp = await sharp(input, { animated: true })
+      .webp({ lossless: true, effort: 6 })
+      .toBuffer();
+    if (webp.length <= maxBytes) {
+      return { bytes: webp, mimeType: "image/webp" };
+    }
+  } catch {
+    // ignore and try next strategy
+  }
+
+  // 再嘗試高壓縮 PNG（仍為無損）
+  try {
+    const png = await sharp(input, { animated: true })
+      .png({ compressionLevel: 9, palette: true, effort: 10 })
+      .toBuffer();
+    if (png.length <= maxBytes) {
+      return { bytes: png, mimeType: "image/png" };
+    }
+  } catch {
+    // ignore and fallback to null
+  }
+  return null;
+}
+
+export async function createImageAssetFromFile(
+  file: File,
+  by?: UploadBy,
+  options?: { enableLosslessOptimizeWhenOversize?: boolean },
+) {
   const mime = file.type || "application/octet-stream";
   if (!ALLOWED_IMAGE_MIME.has(mime)) {
     throw new Error("圖片僅支援 JPEG、PNG、WebP、GIF");
   }
-  if (file.size > MEDIA_LIMITS.imageMaxBytes) {
-    throw new Error("圖片大小不可超過 5MB");
-  }
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const rawBytes = Buffer.from(await file.arrayBuffer());
+  let bytes = rawBytes;
+  let storedMimeType = mime;
   if (bytes.length > MEDIA_LIMITS.imageMaxBytes) {
-    throw new Error("圖片大小不可超過 5MB");
+    const enableLossless = options?.enableLosslessOptimizeWhenOversize ?? false;
+    if (!enableLossless) {
+      throw new Error("圖片大小不可超過 5MB（可勾選無損壓縮後再上傳）");
+    }
+    const optimized = await optimizeImageLosslessToLimit(
+      rawBytes,
+      MEDIA_LIMITS.imageMaxBytes,
+    );
+    if (!optimized) {
+      throw new Error("無損壓縮後仍超過 5MB，請改較小解析度或裁切後再上傳");
+    }
+    bytes = Buffer.from(optimized.bytes);
+    storedMimeType = optimized.mimeType;
   }
   const sha256 = hashBytes(bytes);
-  const originalName = safeName(file.name, `image${extFromMime(mime)}`);
+  const originalName = safeName(file.name, `image${extFromMime(storedMimeType)}`);
   return prisma.mediaAsset.create({
     data: {
       kind: "IMAGE",
-      mimeType: mime,
+      mimeType: storedMimeType,
       sizeBytes: bytes.length,
       sha256,
       originalName,
@@ -66,11 +112,11 @@ export async function createPdfAssetFromFile(file: File, by?: UploadBy) {
     throw new Error("檔案僅支援 PDF");
   }
   if (file.size > MEDIA_LIMITS.pdfMaxBytes) {
-    throw new Error("PDF 大小不可超過 20MB");
+    throw new Error("PDF 大小不可超過 40MB");
   }
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.length > MEDIA_LIMITS.pdfMaxBytes) {
-    throw new Error("PDF 大小不可超過 20MB");
+    throw new Error("PDF 大小不可超過 40MB");
   }
   const sha256 = hashBytes(bytes);
   const originalName = safeName(file.name, "document.pdf");
@@ -105,6 +151,7 @@ export async function createYoutubeAssetFromUrl(rawUrl: string, by?: UploadBy) {
 export async function listMediaAssets(params?: {
   kind?: MediaKind | "ALL";
   q?: string;
+  tag?: string;
   page?: number;
   pageSize?: number;
   status?: "ACTIVE" | "ARCHIVED" | "ALL";
@@ -112,6 +159,7 @@ export async function listMediaAssets(params?: {
   const page = Math.max(1, Math.floor(params?.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(params?.pageSize ?? 20)));
   const q = params?.q?.trim() || "";
+  const tag = params?.tag?.trim() || "";
   const kind = params?.kind && params.kind !== "ALL" ? params.kind : undefined;
   const status =
     params?.status && params.status !== "ALL" ? params.status : undefined;
@@ -119,11 +167,13 @@ export async function listMediaAssets(params?: {
   const where = {
     ...(kind ? { kind } : {}),
     ...(status ? { status } : {}),
+    ...(tag ? { tags: { has: tag } } : {}),
     ...(q
       ? {
           OR: [
             { originalName: { contains: q, mode: "insensitive" as const } },
             { youtubeUrl: { contains: q, mode: "insensitive" as const } },
+            { tags: { has: q } },
           ],
         }
       : {}),
@@ -154,6 +204,23 @@ export type MediaWithUsageCount = MediaAsset & {
   _count?: { usages: number };
 };
 
+export async function listMediaTags(): Promise<string[]> {
+  const rows = await prisma.mediaAsset.findMany({
+    select: { tags: true },
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+    take: 1000,
+  });
+  const set = new Set<string>();
+  for (const r of rows) {
+    for (const t of r.tags ?? []) {
+      const v = t.trim();
+      if (v) set.add(v);
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+}
+
 export async function setMediaAssetStatus(
   assetId: string,
   status: MediaStatus,
@@ -162,6 +229,28 @@ export async function setMediaAssetStatus(
     return await prisma.mediaAsset.update({
       where: { id: assetId },
       data: { status },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function setMediaAssetTags(
+  assetId: string,
+  tags: string[],
+): Promise<MediaAsset | null> {
+  try {
+    const normalized = [
+      ...new Set(
+        tags
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .map((t) => t.slice(0, 40)),
+      ),
+    ].slice(0, 20);
+    return await prisma.mediaAsset.update({
+      where: { id: assetId },
+      data: { tags: normalized },
     });
   } catch {
     return null;

@@ -31,6 +31,7 @@ type MediaListItem = {
   kind: MediaKind;
   status: MediaStatus;
   originalName: string | null;
+  tags: string[];
   mimeType: string | null;
   sizeBytes: number | null;
   youtubeUrl: string | null;
@@ -67,12 +68,36 @@ function kindText(kind: MediaKind) {
   return "YouTube";
 }
 
+function parseYoutubeVideoId(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) {
+      return u.pathname.replace(/^\/+/, "").split("/")[0] || null;
+    }
+    if (u.pathname === "/watch") {
+      return u.searchParams.get("v");
+    }
+    if (u.pathname.startsWith("/shorts/")) {
+      return u.pathname.split("/")[2] || null;
+    }
+    if (u.pathname.startsWith("/embed/")) {
+      return u.pathname.split("/")[2] || null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function MediaLibraryManager({
   initialItems,
   initialPagination,
+  initialAvailableTags,
 }: {
   initialItems: MediaListItem[];
   initialPagination: Pagination;
+  initialAvailableTags: string[];
 }) {
   const [items, setItems] = useState<MediaListItem[]>(initialItems);
   const [pagination, setPagination] = useState<Pagination>(initialPagination);
@@ -80,10 +105,13 @@ export function MediaLibraryManager({
   const [status, setStatus] = useState<"ALL" | MediaStatus>("ACTIVE");
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [losslessOptimizeOnOversize, setLosslessOptimizeOnOversize] =
+    useState(true);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -92,6 +120,11 @@ export function MediaLibraryManager({
   const [usageItems, setUsageItems] = useState<MediaUsageItem[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>(initialAvailableTags);
+  const [tagDrafts, setTagDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(initialItems.map((i) => [i.id, (i.tags || []).join(", ")])),
+  );
+  const [tagSavingId, setTagSavingId] = useState<string | null>(null);
 
   const canPrev = pagination.page > 1;
   const canNext = pagination.page < pagination.totalPages;
@@ -103,8 +136,9 @@ export function MediaLibraryManager({
     p.set("kind", kind);
     p.set("status", status);
     if (q.trim()) p.set("q", q.trim());
+    if (tagFilter.trim()) p.set("tag", tagFilter.trim());
     return p.toString();
-  }, [kind, pagination.page, pagination.pageSize, q, status]);
+  }, [kind, pagination.page, pagination.pageSize, q, status, tagFilter]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -119,6 +153,7 @@ export function MediaLibraryManager({
             ok?: true;
             items?: MediaListItem[];
             pagination?: Pagination;
+            availableTags?: string[];
           }
         | { error?: string };
       if (!res.ok || !("ok" in json)) {
@@ -130,6 +165,9 @@ export function MediaLibraryManager({
       if (json.pagination) {
         setPagination(json.pagination);
       }
+      if (json.availableTags) {
+        setAvailableTags(json.availableTags);
+      }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "讀取素材庫失敗");
     } finally {
@@ -140,6 +178,12 @@ export function MediaLibraryManager({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    setTagDrafts(
+      Object.fromEntries(items.map((i) => [i.id, (i.tags || []).join(", ")])),
+    );
+  }, [items]);
 
   async function copyText(value: string) {
     try {
@@ -160,6 +204,9 @@ export function MediaLibraryManager({
       const fd = new FormData();
       fd.set("kind", kindValue);
       fd.set("file", file);
+      if (kindValue === "image" && losslessOptimizeOnOversize) {
+        fd.set("losslessOptimize", "1");
+      }
       const res = await fetch("/api/admin/media/upload", {
         method: "POST",
         body: fd,
@@ -267,6 +314,32 @@ export function MediaLibraryManager({
     }
   }
 
+  async function saveTags(row: MediaListItem) {
+    setTagSavingId(row.id);
+    try {
+      const raw = tagDrafts[row.id] ?? "";
+      const tags = [...new Set(raw.split(",").map((x) => x.trim()).filter(Boolean))];
+      const res = await fetch(`/api/admin/media/${row.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tags }),
+      });
+      const json = (await res.json()) as
+        | { ok?: true }
+        | { error?: string };
+      if (!res.ok || !("ok" in json)) {
+        throw new Error(
+          "error" in json && json.error ? json.error : "更新標籤失敗",
+        );
+      }
+      await reload();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "更新標籤失敗");
+    } finally {
+      setTagSavingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -275,7 +348,7 @@ export function MediaLibraryManager({
             統一素材庫
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            圖片（5MB 內）、PDF（20MB 內）、YouTube 連結統一管理，供 Banner／課程／站點設定重複取用。
+            圖片（5MB 內）、PDF（40MB 內）、YouTube 連結統一管理，供 Banner／課程／站點設定重複取用。
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => void reload()}>
@@ -298,9 +371,18 @@ export function MediaLibraryManager({
                 void uploadFile("image", e.currentTarget.files?.[0] ?? null)
               }
             />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={losslessOptimizeOnOversize}
+                onChange={(e) => setLosslessOptimizeOnOversize(e.target.checked)}
+                className="size-4 rounded border-input"
+              />
+              超過 5MB 時，嘗試無損壓縮後再上傳
+            </label>
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">
-            <Label htmlFor="media-pdf-upload">上傳 PDF（{"<= 20MB"}）</Label>
+            <Label htmlFor="media-pdf-upload">上傳 PDF（{"<= 40MB"}）</Label>
             <Input
               id="media-pdf-upload"
               type="file"
@@ -341,9 +423,9 @@ export function MediaLibraryManager({
       </div>
 
       <div className="rounded-md border border-border bg-card p-4">
-        <div className="grid gap-2 md:grid-cols-[1fr_auto_auto_auto]">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto_auto_auto_auto]">
           <Input
-            placeholder="搜尋名稱 / YouTube URL"
+            placeholder="搜尋名稱 / YouTube URL / 標籤"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
           />
@@ -372,6 +454,21 @@ export function MediaLibraryManager({
             <option value="ALL">全部狀態</option>
             <option value="ARCHIVED">已封存</option>
           </select>
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={tagFilter}
+            onChange={(e) => {
+              setTagFilter(e.target.value);
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+          >
+            <option value="">全部標籤</option>
+            {availableTags.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
           <Button
             type="button"
             onClick={() => {
@@ -391,6 +488,7 @@ export function MediaLibraryManager({
               <TableHead className="w-[92px]">預覽</TableHead>
               <TableHead>名稱 / 連結</TableHead>
               <TableHead className="w-[92px]">類型</TableHead>
+              <TableHead className="w-[260px]">標籤（可編輯）</TableHead>
               <TableHead className="w-[100px] text-right">大小</TableHead>
               <TableHead className="w-[84px] text-right">使用數</TableHead>
               <TableHead className="w-[120px]">建立時間</TableHead>
@@ -400,7 +498,7 @@ export function MediaLibraryManager({
           <TableBody>
             {items.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {loading ? "讀取中..." : "目前沒有素材"}
                 </TableCell>
               </TableRow>
@@ -424,9 +522,29 @@ export function MediaLibraryManager({
                         <FileText className="size-5 text-muted-foreground" />
                       </div>
                     ) : (
-                      <div className="flex h-12 w-16 items-center justify-center rounded border border-border bg-muted">
-                        <Link2 className="size-5 text-muted-foreground" />
-                      </div>
+                      (() => {
+                        const ytId = parseYoutubeVideoId(row.youtubeUrl);
+                        const thumb = ytId
+                          ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`
+                          : null;
+                        if (thumb) {
+                          return (
+                            <div className="relative aspect-video w-16 overflow-hidden rounded border border-border bg-muted">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={thumb}
+                                alt=""
+                                className="size-full object-cover"
+                              />
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex h-12 w-16 items-center justify-center rounded border border-border bg-muted">
+                            <Link2 className="size-5 text-muted-foreground" />
+                          </div>
+                        );
+                      })()
                     )}
                   </TableCell>
                   <TableCell className="max-w-[380px]">
@@ -449,6 +567,30 @@ export function MediaLibraryManager({
                     )}
                   </TableCell>
                   <TableCell>{kindText(row.kind)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Input
+                        value={tagDrafts[row.id] ?? ""}
+                        onChange={(e) =>
+                          setTagDrafts((prev) => ({
+                            ...prev,
+                            [row.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="例如：首頁, 行銷, AI"
+                        className="h-8 text-xs"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={tagSavingId === row.id}
+                        onClick={() => void saveTags(row)}
+                      >
+                        儲存
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatBytes(row.sizeBytes)}
                   </TableCell>
