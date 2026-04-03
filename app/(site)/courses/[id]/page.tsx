@@ -17,7 +17,7 @@ import {
 import { formatTwd } from "@/lib/format-currency";
 import { siteOriginFromEnv, toAbsoluteUrl } from "@/lib/seo/absolute-url";
 import type { Course } from "@/lib/types/course";
-import { ChevronRight, Clock, UserRound } from "lucide-react";
+import { ChevronRight, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -244,10 +244,6 @@ export default async function CourseDetailPage({ params }: PageProps) {
                     </span>
                   </span>
                 ) : null}
-                <span className="inline-flex items-center gap-1.5 text-zinc-500">
-                  <Clock className="size-4" aria-hidden />
-                  隨時開課 · 無限回放
-                </span>
               </div>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

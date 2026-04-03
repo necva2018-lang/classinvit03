@@ -32,7 +32,7 @@ export function CourseCardCover({
   return (
     <Link
       href={href}
-      className="group/media relative block aspect-[16/10] w-full overflow-hidden bg-zinc-100 p-2"
+      className="group/media relative block aspect-[1280/850] w-full overflow-hidden bg-zinc-100 p-2"
     >
       <div className="relative h-full w-full">
         <Image
