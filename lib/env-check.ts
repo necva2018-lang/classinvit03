@@ -1,8 +1,8 @@
 /**
- * 啟動時環境變數檢查（供根 layout 呼叫）。
+ * 環境變數檢查邏輯。
  *
- * - 開發：缺少必要項會 throw，Next 錯誤覆蓋層明顯顯示。
- * - 正式：同樣 throw，由 app/global-error.tsx 顯示友善頁（根 layout 錯誤須用 global-error）。
+ * - 根 layout 使用 `EnvGate`（不 throw），正式站仍可顯示缺漏清單（避免錯誤序列化後只剩 digest）。
+ * - `assertAppEnv()` 仍保留供需要 throw 的腳本／測試使用。
  *
  * 本機若暫無資料庫：開發模式預設已不強制 DATABASE_URL（整站可開；需 DB 的頁面仍要設定 .env）。
  * 若要與正式相同嚴格檢查：設 REQUIRE_DATABASE_URL_IN_DEV=1。完全略過檢查：SKIP_ENV_CHECK=1（勿上線）。
