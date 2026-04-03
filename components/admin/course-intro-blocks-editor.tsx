@@ -199,21 +199,18 @@ export function CourseIntroBlocksEditor({
   >(null);
 
   function addText() {
-    onChange([
-      ...blocks,
-      { id: newId(), type: "text", body: "" },
-    ]);
+    onChange([{ id: newId(), type: "text", body: "" }, ...blocks]);
   }
   function addImage() {
     onChange([
-      ...blocks,
       { id: newId(), type: "image", url: "https://", caption: null },
+      ...blocks,
     ]);
   }
   function addVideo() {
     onChange([
-      ...blocks,
       { id: newId(), type: "video", url: "https://", caption: null },
+      ...blocks,
     ]);
   }
 

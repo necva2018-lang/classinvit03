@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { isYoutubeUrl } from "@/lib/media/youtube";
 
+const mediaLibraryPathUrl = /^\/api\/media\/[a-zA-Z0-9_-]+$/;
+
 const httpUrl = z
   .string()
   .trim()
@@ -8,6 +10,15 @@ const httpUrl = z
   .refine(
     (s) => /^https?:\/\/.+/i.test(s),
     "需為 http 或 https 開頭的網址",
+  );
+
+const imageUrlForIntro = z
+  .string()
+  .trim()
+  .min(1, "請填寫網址")
+  .refine(
+    (s) => /^https?:\/\/.+/i.test(s) || mediaLibraryPathUrl.test(s),
+    "圖片網址需為 http(s) 或 /api/media/... 素材庫連結",
   );
 
 export const introTextBlockSchema = z.object({
@@ -19,7 +30,7 @@ export const introTextBlockSchema = z.object({
 export const introImageBlockSchema = z.object({
   id: z.string().min(1),
   type: z.literal("image"),
-  url: httpUrl,
+  url: imageUrlForIntro,
   caption: z.string().nullable().optional(),
 });
 
