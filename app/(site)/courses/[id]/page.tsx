@@ -266,14 +266,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="relative mx-auto aspect-[4/3] w-full max-w-[520px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md sm:aspect-[16/10] lg:mx-0 lg:max-w-none lg:aspect-[4/3]">
+            <div className="relative mx-auto aspect-square w-full max-w-[520px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md lg:mx-0 lg:max-w-none">
               <Image
                 src={course.coverImage}
                 alt={course.title}
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 440px"
+                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 520px"
               />
               {course.category !== "未分類" ? (
                 <span className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
