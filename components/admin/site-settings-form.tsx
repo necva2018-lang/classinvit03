@@ -6,6 +6,7 @@ import { saveSiteSettings } from "@/lib/admin/site-settings-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MediaPickerSheet } from "@/components/admin/media-picker-sheet";
 import {
   Tabs,
   TabsContent,
@@ -36,6 +37,7 @@ function LogoUrlRow({
 }) {
   const id = `setting-${field.key}`;
   const [url, setUrl] = useState(defaultValue);
+  const [pickerOpen, setPickerOpen] = useState(false);
   return (
     <div className="grid gap-2 rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -47,14 +49,19 @@ function LogoUrlRow({
         </code>
       </div>
       <p className="text-sm text-muted-foreground">{field.description}</p>
-      <Input
-        id={id}
-        name={field.key}
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="font-mono text-sm"
-        placeholder="https://…"
-      />
+      <div className="flex gap-2">
+        <Input
+          id={id}
+          name={field.key}
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="font-mono text-sm"
+          placeholder="/api/media/..."
+        />
+        <Button type="button" variant="outline" onClick={() => setPickerOpen(true)}>
+          素材庫
+        </Button>
+      </div>
       {looksLikeHttpImageUrl(url) ? (
         <div className="flex items-center gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- 後台預覽任意圖床 */}
@@ -66,6 +73,13 @@ function LogoUrlRow({
           <span className="text-xs text-muted-foreground">預覽</span>
         </div>
       ) : null}
+      <MediaPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title={`選擇素材：${field.label}`}
+        kind="IMAGE"
+        onSelect={(value) => setUrl(value)}
+      />
     </div>
   );
 }

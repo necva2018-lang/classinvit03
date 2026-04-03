@@ -23,6 +23,7 @@ model User {
   enrollments Enrollment[]
   loginLogs   AuthLoginLog[]
   courseViewLogs CourseViewLog[]
+  uploadedMedia MediaAsset[] @relation("MediaUploadedBy")
 }
 
 enum Role {
@@ -53,6 +54,17 @@ enum AuthLoginFailureCode {
   PASSWORD_NOT_SET
   INVALID_PASSWORD
   USER_DISABLED
+}
+
+enum MediaKind {
+  IMAGE
+  PDF
+  YOUTUBE
+}
+
+enum MediaStatus {
+  ACTIVE
+  ARCHIVED
 }
 
 // 課程分類 (如：人工智慧、網頁前端)
@@ -226,4 +238,49 @@ model CourseViewLog {
   @@index([courseId, createdAt])
   @@index([userId, createdAt])
   @@index([visitorId, createdAt])
+}
+
+/// 媒體主檔：檔案（二進位）直存 PostgreSQL，或 YouTube URL
+model MediaAsset {
+  id          String      @id @default(cuid())
+  kind        MediaKind
+  status      MediaStatus @default(ACTIVE)
+
+  originalName String? @map("original_name")
+  mimeType     String? @map("mime_type")
+  sizeBytes    Int?    @map("size_bytes")
+  sha256       String? @map("sha256")
+
+  /// 檔案內容（IMAGE/PDF）；YouTube 類型為 null
+  blobData   Bytes?  @map("blob_data")
+  /// YouTube 原始/正規化連結（YOUTUBE）；檔案類型為 null
+  youtubeUrl String? @map("youtube_url") @db.Text
+
+  uploadedByUserId String? @map("uploaded_by_user_id")
+  uploadedByUser   User?   @relation("MediaUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usages MediaUsage[]
+
+  @@index([kind, createdAt])
+  @@index([status, createdAt])
+  @@index([uploadedByUserId, createdAt])
+  @@index([sha256])
+}
+
+/// 一素材多處使用：記錄被哪個實體與欄位引用
+model MediaUsage {
+  id         String     @id @default(cuid())
+  assetId    String     @map("asset_id")
+  asset      MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  entityType String     @map("entity_type")
+  entityId   String     @map("entity_id")
+  fieldPath  String     @map("field_path")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@unique([entityType, entityId, fieldPath])
+  @@index([assetId, createdAt])
+  @@index([entityType, entityId])
 }

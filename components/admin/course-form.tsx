@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MediaPickerSheet } from "@/components/admin/media-picker-sheet";
 import type {
   CourseFormCategoryOption,
   CourseFormInitialValues,
@@ -72,6 +73,8 @@ export function CourseForm({
     const kind = normalizeCourseCtaKind(course.ctaKind);
     return t || CTA_KIND_DEFAULT_FIELDS[kind].solidHref;
   });
+  const [imageUrl, setImageUrl] = useState(course?.imageUrl ?? "");
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
 
   const isPublishDisabled = status === "PAUSED";
   const isSubsidyCta = ctaKind === "SUBSIDY";
@@ -424,15 +427,25 @@ export function CourseForm({
 
       <div className="grid gap-2">
         <Label htmlFor="imageUrl">封面圖 URL（選填）</Label>
-        <Input
-          id="imageUrl"
-          name="imageUrl"
-          type="text"
-          inputMode="url"
-          autoComplete="off"
-          defaultValue={course?.imageUrl ?? ""}
-          placeholder="https://…"
-        />
+        <div className="flex gap-2">
+          <Input
+            id="imageUrl"
+            name="imageUrl"
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="/api/media/..."
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setImagePickerOpen(true)}
+          >
+            從素材庫選取
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -460,6 +473,13 @@ export function CourseForm({
       <div className="flex flex-wrap gap-3">
         <SubmitButton label={submitLabel} />
       </div>
+      <MediaPickerSheet
+        open={imagePickerOpen}
+        onOpenChange={setImagePickerOpen}
+        title="選擇課程封面圖"
+        kind="IMAGE"
+        onSelect={(url) => setImageUrl(url)}
+      />
     </form>
   );
 }

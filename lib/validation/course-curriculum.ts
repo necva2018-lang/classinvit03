@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { introBlocksArraySchema } from "@/lib/validation/intro-blocks";
+import { isYoutubeUrl } from "@/lib/media/youtube";
 
 const nonNegOrNull = z.union([z.number().nonnegative(), z.null()]);
 
@@ -49,8 +50,8 @@ const optionalVideoUrl = z
     return t === "" ? null : t;
   })
   .refine(
-    (s) => s === null || /^https?:\/\/.+/i.test(s),
-    "影片連結需為 http(s) 網址或留空",
+    (s) => s === null || isYoutubeUrl(s),
+    "影片連結需為 YouTube 網址或留空",
   );
 
 /** 課堂 */

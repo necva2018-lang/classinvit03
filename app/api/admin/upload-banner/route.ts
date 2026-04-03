@@ -1,9 +1,15 @@
-import { saveBannerUpload } from "@/lib/banner-file-upload";
+import { getAdminUserIdForRoute } from "@/lib/admin/admin-auth-route";
+import { createImageAssetFromFile, mediaPublicUrl } from "@/lib/media/core";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const adminUserId = await getAdminUserIdForRoute();
+  if (!adminUserId) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -16,10 +22,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "請選擇圖片檔案" }, { status: 400 });
   }
 
-  const result = await saveBannerUpload(file, process.cwd());
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+  try {
+    const asset = await createImageAssetFromFile(file, { userId: adminUserId });
+    return NextResponse.json({ url: mediaPublicUrl(asset.id), assetId: asset.id });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "上傳失敗";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
-
-  return NextResponse.json({ url: result.publicPath });
 }

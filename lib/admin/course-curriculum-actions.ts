@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { syncEntityMediaUsages } from "@/lib/media/usage";
+import { isYoutubeUrl } from "@/lib/media/youtube";
 import { prismaSupportsCourseCtaKind } from "@/lib/prisma-course-cta";
 import {
   courseCurriculumCourseSchema,
@@ -103,6 +105,21 @@ export async function saveCourseMeta(
         },
   });
 
+  await syncEntityMediaUsages({
+    entityType: "COURSE",
+    entityId: courseId,
+    fields: [
+      { fieldPath: "imageUrl", url: d.imageUrl ?? null },
+      ...(d.introBlocks ?? [])
+        .filter((b) => b.type !== "text")
+        .map((b) => ({
+          fieldPath: `introBlocks:${b.id}:url`,
+          url: b.url,
+        })),
+    ],
+    replaceFieldPathPrefixes: ["introBlocks:"],
+  });
+
   revalidateCourse(courseId);
   return { ok: true };
 }
@@ -147,6 +164,9 @@ export async function saveLesson(
   }
 
   const d = parsed.data;
+  if (d.videoUrl && !isYoutubeUrl(d.videoUrl)) {
+    return { ok: false, message: "影片僅接受 YouTube 連結" };
+  }
   await prisma.lesson.update({
     where: { id: lessonId },
     data: {
@@ -155,6 +175,12 @@ export async function saveLesson(
       duration: d.duration ?? null,
       order: d.order,
     },
+  });
+
+  await syncEntityMediaUsages({
+    entityType: "LESSON",
+    entityId: lessonId,
+    fields: [{ fieldPath: "videoUrl", url: d.videoUrl ?? null }],
   });
 
   await touchCourseRow(courseId);

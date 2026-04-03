@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MediaPickerSheet } from "@/components/admin/media-picker-sheet";
 import {
   embedUrlFromVideoPage,
   isProbablyDirectVideoFile,
@@ -83,7 +84,7 @@ function IntroVideoAdminPreview({
   if (!looksLikeHttpsMediaUrl(trimmed)) {
     return (
       <p className="text-xs text-muted-foreground">
-        輸入完整的影片 https 網址後，將顯示預覽。
+        輸入完整的 YouTube 網址後，將顯示預覽。
       </p>
     );
   }
@@ -133,8 +134,7 @@ function IntroVideoAdminPreview({
 
   return (
     <p className="text-xs text-muted-foreground">
-      無法嵌入預覽此連結。儲存後，前台將顯示「開啟影片連結」或請改為 YouTube／Vimeo／直接
-      .mp4 網址。
+      無法嵌入預覽此連結。請改用 YouTube 影片網址（watch / youtu.be / shorts）。
     </p>
   );
 }
@@ -189,6 +189,12 @@ export function CourseIntroBlocksEditor({
   onChange,
   disabled,
 }: Props) {
+  const [pickerTarget, setPickerTarget] = useState<
+    | { kind: "IMAGE"; index: number }
+    | { kind: "YOUTUBE"; index: number }
+    | null
+  >(null);
+
   function addText() {
     onChange([
       ...blocks,
@@ -356,19 +362,29 @@ export function CourseIntroBlocksEditor({
                 <div className="grid gap-2">
                   <div className="grid gap-1.5">
                     <Label className="text-xs">圖片 URL（https）</Label>
-                    <Input
-                      value={block.url}
-                      disabled={disabled}
-                      onChange={(e) =>
-                        patchAt(index, {
-                          type: "image",
-                          id: block.id,
-                          url: e.target.value,
-                          caption: block.caption,
-                        })
-                      }
-                      placeholder="https://…"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={block.url}
+                        disabled={disabled}
+                        onChange={(e) =>
+                          patchAt(index, {
+                            type: "image",
+                            id: block.id,
+                            url: e.target.value,
+                            caption: block.caption,
+                          })
+                        }
+                        placeholder="/api/media/..."
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={disabled}
+                        onClick={() => setPickerTarget({ kind: "IMAGE", index })}
+                      >
+                        素材庫
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid gap-1.5">
                     <Label className="text-xs">圖說（選填）</Label>
@@ -394,21 +410,33 @@ export function CourseIntroBlocksEditor({
                 <div className="grid gap-2">
                   <div className="grid gap-1.5">
                     <Label className="text-xs">
-                      影片連結（YouTube／Vimeo 或 .mp4 等）
+                      影片連結（僅 YouTube）
                     </Label>
-                    <Input
-                      value={block.url}
-                      disabled={disabled}
-                      onChange={(e) =>
-                        patchAt(index, {
-                          type: "video",
-                          id: block.id,
-                          url: e.target.value,
-                          caption: block.caption,
-                        })
-                      }
-                      placeholder="https://…"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={block.url}
+                        disabled={disabled}
+                        onChange={(e) =>
+                          patchAt(index, {
+                            type: "video",
+                            id: block.id,
+                            url: e.target.value,
+                            caption: block.caption,
+                          })
+                        }
+                        placeholder="/api/media/..."
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={disabled}
+                        onClick={() =>
+                          setPickerTarget({ kind: "YOUTUBE", index })
+                        }
+                      >
+                        素材庫
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid gap-1.5">
                     <Label className="text-xs">說明（選填）</Label>
@@ -433,6 +461,40 @@ export function CourseIntroBlocksEditor({
           ))}
         </ul>
       )}
+      <MediaPickerSheet
+        open={pickerTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setPickerTarget(null);
+        }}
+        title={
+          pickerTarget?.kind === "YOUTUBE"
+            ? "選擇影片素材（YouTube）"
+            : "選擇圖片素材"
+        }
+        kind={pickerTarget?.kind ?? "IMAGE"}
+        onSelect={(url) => {
+          if (!pickerTarget) return;
+          const block = blocks[pickerTarget.index];
+          if (!block) return;
+          if (block.type === "image" && pickerTarget.kind === "IMAGE") {
+            patchAt(pickerTarget.index, {
+              type: "image",
+              id: block.id,
+              url,
+              caption: block.caption ?? null,
+            });
+            return;
+          }
+          if (block.type === "video" && pickerTarget.kind === "YOUTUBE") {
+            patchAt(pickerTarget.index, {
+              type: "video",
+              id: block.id,
+              url,
+              caption: block.caption ?? null,
+            });
+          }
+        }}
+      />
     </div>
   );
 }

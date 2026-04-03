@@ -56,7 +56,7 @@ function IntroBlockItem({ block }: { block: IntroBlock }) {
         <img
           src={block.url}
           alt={block.caption?.trim() || ""}
-          className="max-h-[min(70vh,520px)] w-full rounded-lg border border-zinc-200 object-contain bg-zinc-50"
+          className="max-h-[360px] w-full rounded-lg border border-zinc-200 object-contain bg-zinc-50 sm:max-h-[460px] lg:max-h-[520px]"
           loading="lazy"
         />
         {block.caption?.trim() ? (
@@ -84,7 +84,7 @@ function IntroBlockItem({ block }: { block: IntroBlock }) {
       ) : isProbablyDirectVideoFile(block.url) ? (
         <video
           controls
-          className="max-h-[min(70vh,520px)] w-full rounded-lg border border-zinc-200 bg-black"
+          className="max-h-[360px] w-full rounded-lg border border-zinc-200 bg-black sm:max-h-[460px] lg:max-h-[520px]"
           src={block.url}
         >
           您的瀏覽器不支援內嵌影片播放。

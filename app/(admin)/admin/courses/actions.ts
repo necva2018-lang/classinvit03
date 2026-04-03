@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { syncEntityMediaUsages } from "@/lib/media/usage";
 import { persistLearnAudienceColumnsRaw } from "@/lib/admin/persist-learn-audience-raw";
 import {
   prismaSupportsCourseCtaKind,
@@ -144,6 +145,11 @@ export async function createCourse(formData: FormData) {
     learnOutcomesText,
     targetAudienceText,
   );
+  await syncEntityMediaUsages({
+    entityType: "COURSE",
+    entityId: created.id,
+    fields: [{ fieldPath: "imageUrl", url: imageUrl }],
+  });
 
   revalidatePath("/admin/courses");
   revalidatePath("/");
@@ -235,6 +241,11 @@ export async function updateCourse(courseId: string, formData: FormData) {
     learnOutcomesText,
     targetAudienceText,
   );
+  await syncEntityMediaUsages({
+    entityType: "COURSE",
+    entityId: courseId,
+    fields: [{ fieldPath: "imageUrl", url: imageUrl }],
+  });
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);

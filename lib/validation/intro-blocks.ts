@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isYoutubeUrl } from "@/lib/media/youtube";
 
 const httpUrl = z
   .string()
@@ -25,7 +26,7 @@ export const introImageBlockSchema = z.object({
 export const introVideoBlockSchema = z.object({
   id: z.string().min(1),
   type: z.literal("video"),
-  url: httpUrl,
+  url: httpUrl.refine((s) => isYoutubeUrl(s), "影片僅接受 YouTube 連結"),
   caption: z.string().nullable().optional(),
 });
 

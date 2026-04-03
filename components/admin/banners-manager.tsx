@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { MediaPickerSheet } from "@/components/admin/media-picker-sheet";
 import { ChevronDown, ChevronUp, Film, Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -85,6 +86,8 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [videoPickerOpen, setVideoPickerOpen] = useState(false);
 
   const openCreate = () => {
     const nextOrder =
@@ -193,7 +196,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
             首頁輪播
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            管理首頁 Hero 輪播；可為圖片或 https 影片直連。僅「啟用」項目會顯示於前台，可用上下箭頭調整順序。
+            管理首頁 Hero 輪播；可為圖片或 YouTube 影片。僅「啟用」項目會顯示於前台，可用上下箭頭調整順序。
           </p>
         </div>
         <Button type="button" onClick={openCreate}>
@@ -351,9 +354,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
               <div className="grid gap-2">
                 <Label>圖片／封面</Label>
                 <p className="text-xs text-muted-foreground">
-                  與下方「影片 URL」至少填一項。上傳檔案會寫入{" "}
-                  <code className="rounded bg-muted px-1">public/uploads/banners</code>
-                  ；有影片時此圖可作為載入前封面（poster）。
+                  與下方「YouTube URL」至少填一項。上傳後會建立素材庫連結；有影片時此圖可作為載入前封面（poster）。
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
@@ -372,13 +373,22 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                 ) : null}
                 <div className="grid gap-2">
                   <Label htmlFor="banner-image-url">圖片 URL</Label>
-                  <Input
-                    id="banner-image-url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="/uploads/banners/… 或 https://…"
-                    className="font-mono text-sm"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="banner-image-url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="/api/media/..."
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setImagePickerOpen(true)}
+                    >
+                      素材庫
+                    </Button>
+                  </div>
                 </div>
                 {imageUrl.trim() ? (
                   <div
@@ -399,19 +409,27 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="banner-video-url">影片 URL（選填）</Label>
+                <Label htmlFor="banner-video-url">YouTube URL（選填）</Label>
                 <p className="text-xs text-muted-foreground">
-                  須為 <code className="rounded bg-muted px-1">https</code>
-                  ：可貼 YouTube／Vimeo 影片頁面連結，或影片檔直連（如 .mp4）。嵌入平台會以 iframe
-                  播放；建議另設圖片作為載入前封面。
+                  僅接受 YouTube 連結（如 watch / youtu.be / shorts）；系統會自動嵌入播放，建議另設圖片作為載入前封面。
                 </p>
                 <Input
                   id="banner-video-url"
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=… 或 .mp4 直連"
+                  placeholder="https://www.youtube.com/watch?v=..."
                   className="font-mono text-sm"
                 />
+                <div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setVideoPickerOpen(true)}
+                  >
+                    從素材庫選 YouTube
+                  </Button>
+                </div>
                 {(() => {
                   const resolved =
                     isBannerVideoUrl(videoUrl) &&
@@ -433,20 +451,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                       </div>
                     );
                   }
-                  return (
-                    <div className="relative mt-2 aspect-video w-full max-w-md overflow-hidden rounded-lg border border-border bg-black">
-                      <video
-                        className="size-full object-cover"
-                        src={resolved.src}
-                        poster={imageUrl.trim() || undefined}
-                        muted
-                        loop
-                        playsInline
-                        controls
-                        preload="metadata"
-                      />
-                    </div>
-                  );
+                  return null;
                 })()}
               </div>
 
@@ -518,6 +523,20 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                   </Button>
                 ) : null}
               </div>
+              <MediaPickerSheet
+                open={imagePickerOpen}
+                onOpenChange={setImagePickerOpen}
+                title="選擇 Banner 圖片"
+                kind="IMAGE"
+                onSelect={(url) => setImageUrl(url)}
+              />
+              <MediaPickerSheet
+                open={videoPickerOpen}
+                onOpenChange={setVideoPickerOpen}
+                title="選擇 Banner YouTube 素材"
+                kind="YOUTUBE"
+                onSelect={(url) => setVideoUrl(url)}
+              />
             </form>
           ) : null}
         </SheetContent>

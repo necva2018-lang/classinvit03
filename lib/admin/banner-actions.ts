@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { isYoutubeUrl } from "@/lib/media/youtube";
+import { syncEntityMediaUsages } from "@/lib/media/usage";
 import { revalidatePath } from "next/cache";
 
 function revalidateBanners() {
@@ -52,8 +54,8 @@ export async function saveBanner(formData: FormData) {
   }
   // 若資料庫尚未套用 imageUrl DROP NOT NULL，不可寫 SQL NULL；有影片而無圖時改存空字串（UI 以 trim 視同無圖）
   const imageUrlForDb = imageUrl ?? (videoUrl ? "" : null);
-  if (videoUrl && !/^https:\/\//i.test(videoUrl)) {
-    throw new Error("影片網址需為 https 開頭（可為 YouTube／Vimeo 連結或 .mp4 等直連）");
+  if (videoUrl && !isYoutubeUrl(videoUrl)) {
+    throw new Error("影片網址僅接受 YouTube 連結");
   }
 
   const linkUrl = String(formData.get("linkUrl") ?? "").trim() || null;
@@ -64,6 +66,7 @@ export async function saveBanner(formData: FormData) {
 
   const isActive = formData.get("isActive") === "on";
 
+  let targetId = id;
   if (id) {
     await prisma.banner.update({
       where: { id },
@@ -79,7 +82,7 @@ export async function saveBanner(formData: FormData) {
       },
     });
   } else {
-    await prisma.banner.create({
+    const created = await prisma.banner.create({
       data: {
         title,
         subtitle,
@@ -90,6 +93,18 @@ export async function saveBanner(formData: FormData) {
         order,
         isActive,
       },
+    });
+    targetId = created.id;
+  }
+
+  if (targetId) {
+    await syncEntityMediaUsages({
+      entityType: "BANNER",
+      entityId: targetId,
+      fields: [
+        { fieldPath: "imageUrl", url: imageUrlForDb },
+        { fieldPath: "videoUrl", url: videoUrl },
+      ],
     });
   }
 

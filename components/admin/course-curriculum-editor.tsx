@@ -17,6 +17,7 @@ import {
   type CourseTreeDrafts,
 } from "@/lib/validation/course-curriculum";
 import { CourseIntroBlocksEditor } from "@/components/admin/course-intro-blocks-editor";
+import { MediaPickerSheet } from "@/components/admin/media-picker-sheet";
 import { CourseAnnouncementsPanel } from "@/components/admin/course-announcements-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +128,8 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
   const [newSectionTitle, setNewSectionTitle] = useState("");
   const [banner, setBanner] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const [courseImagePickerOpen, setCourseImagePickerOpen] = useState(false);
+  const [lessonVideoPickerOpen, setLessonVideoPickerOpen] = useState(false);
 
   const invalidIds = useMemo(
     () => collectInvalidCurriculumIds(initial.courseId, drafts),
@@ -679,15 +682,24 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
             </fieldset>
             <div className="grid gap-2">
               <Label htmlFor="c-img">封面圖 URL</Label>
-              <Input
-                id="c-img"
-                value={course.imageUrl ?? ""}
-                onChange={(e) =>
-                  updateCourse({
-                    imageUrl: e.target.value === "" ? null : e.target.value,
-                  })
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="c-img"
+                  value={course.imageUrl ?? ""}
+                  onChange={(e) =>
+                    updateCourse({
+                      imageUrl: e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCourseImagePickerOpen(true)}
+                >
+                  素材庫
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -715,6 +727,13 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
                 請修正驗證錯誤後再儲存（標題必填、價格不可為負）。
               </p>
             ) : null}
+            <MediaPickerSheet
+              open={courseImagePickerOpen}
+              onOpenChange={setCourseImagePickerOpen}
+              title="選擇課程封面圖"
+              kind="IMAGE"
+              onSelect={(url) => updateCourse({ imageUrl: url })}
+            />
           </div>
         ) : null}
 
@@ -822,16 +841,25 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="l-video">影片連結（http(s)，可留空）</Label>
-              <Input
-                id="l-video"
-                value={selectedLessonDraft.videoUrl ?? ""}
-                onChange={(e) =>
-                  updateLesson(selection.id, {
-                    videoUrl: e.target.value === "" ? null : e.target.value,
-                  })
-                }
-              />
+              <Label htmlFor="l-video">影片連結（YouTube，可留空）</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="l-video"
+                  value={selectedLessonDraft.videoUrl ?? ""}
+                  onChange={(e) =>
+                    updateLesson(selection.id, {
+                      videoUrl: e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLessonVideoPickerOpen(true)}
+                >
+                  素材庫
+                </Button>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="l-dur">長度（秒，可留空）</Label>
@@ -883,6 +911,17 @@ export function CourseCurriculumEditor({ initial }: { initial: CurriculumEditorI
             >
               儲存課堂
             </Button>
+            <MediaPickerSheet
+              open={lessonVideoPickerOpen}
+              onOpenChange={setLessonVideoPickerOpen}
+              title="選擇課堂 YouTube 素材"
+              kind="YOUTUBE"
+              onSelect={(url) =>
+                updateLesson(selection.id, {
+                  videoUrl: url,
+                })
+              }
+            />
           </div>
         ) : null}
       </main>

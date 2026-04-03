@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 function AuthLoadingPlaceholder({ className }: { className?: string }) {
   return (
@@ -18,6 +19,7 @@ function AuthLoadingPlaceholder({ className }: { className?: string }) {
 /** 桌面版：導覽列右側登入狀態 */
 export function NavAuthDesktop() {
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   if (status === "loading") {
     return (
@@ -47,7 +49,11 @@ export function NavAuthDesktop() {
           variant="outline"
           size="sm"
           className="border-zinc-300"
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={async () => {
+            await signOut({ redirect: false, redirectTo: "/" });
+            router.replace("/");
+            router.refresh();
+          }}
         >
           登出
         </Button>
@@ -76,6 +82,7 @@ export function NavAuthDesktop() {
 /** 手機抽屜：會員按鈕（關閉抽屜於 onNavigate） */
 export function NavAuthMobile({ onNavigate }: { onNavigate: () => void }) {
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   if (status === "loading") {
     return (
@@ -105,9 +112,11 @@ export function NavAuthMobile({ onNavigate }: { onNavigate: () => void }) {
         <button
           type="button"
           className="flex h-11 items-center justify-center rounded-full border border-zinc-300 text-sm font-semibold text-zinc-700"
-          onClick={() => {
+          onClick={async () => {
             onNavigate();
-            void signOut({ callbackUrl: "/" });
+            await signOut({ redirect: false, redirectTo: "/" });
+            router.replace("/");
+            router.refresh();
           }}
         >
           登出

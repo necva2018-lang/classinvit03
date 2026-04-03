@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Megaphone, PlusCircle, Receipt, UserRoundCog } from "lucide-react";
+import {
+  LibraryBig,
+  Megaphone,
+  PlusCircle,
+  Receipt,
+  UserRoundCog,
+} from "lucide-react";
 import Link from "next/link";
 
 const actions = [
@@ -31,6 +37,13 @@ const actions = [
     icon: Megaphone,
     variant: "outline" as const,
   },
+  {
+    href: "/admin/media",
+    label: "統一素材庫",
+    description: "上傳圖片/PDF、建立 YouTube 素材並複製取用連結",
+    icon: LibraryBig,
+    variant: "outline" as const,
+  },
 ];
 
 export function DashboardQuickActions() {
@@ -42,7 +55,7 @@ export function DashboardQuickActions() {
       >
         快捷操作
       </h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {actions.map(({ href, label, description, icon: Icon, variant }) => (
           <Button
             key={href}

@@ -184,7 +184,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
       {/* TibaMe 式：標題／價格／標籤／CTA + 封面並列 */}
       <section className="border-b border-zinc-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,440px)] lg:gap-12">
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-12">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold leading-tight tracking-tight text-zinc-900 sm:text-3xl lg:text-[1.75rem] lg:leading-snug">
                 {course.title}
@@ -266,14 +266,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md">
+            <div className="relative mx-auto aspect-[4/3] w-full max-w-[520px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md sm:aspect-[16/10] lg:mx-0 lg:max-w-none lg:aspect-[4/3]">
               <Image
                 src={course.coverImage}
                 alt={course.title}
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 440px"
+                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 440px"
               />
               {course.category !== "未分類" ? (
                 <span className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
