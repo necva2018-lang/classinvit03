@@ -137,6 +137,16 @@ export function assertAppEnv(): void {
   }
 }
 
+/**
+ * global-error / error 在客戶端執行時，伺服端丟出的 Error 經序列化後常失去
+ * `instanceof EnvConfigurationError`，需用 name／訊息前綴辨識。
+ */
 export function isEnvConfigurationError(e: unknown): e is EnvConfigurationError {
-  return e instanceof EnvConfigurationError;
+  if (e instanceof EnvConfigurationError) return true;
+  if (!e || typeof e !== "object") return false;
+  const err = e as Error;
+  if (err.name === "EnvConfigurationError") return true;
+  return (
+    typeof err.message === "string" && err.message.startsWith("[環境變數]")
+  );
 }
