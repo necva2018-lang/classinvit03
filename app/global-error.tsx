@@ -28,8 +28,18 @@ export default function GlobalError({
               ? "請確認專案根目錄有 .env 且含 DATABASE_URL（本機）或 Zeabur Web Variables（正式）。若本機暫無資料庫，可設 SKIP_ENV_CHECK=1 僅供開發。OAuth 相關變數須成對填寫。"
               : "請稍後再試，或聯絡管理員並提供錯誤摘要。"}
           </p>
+          {error.digest ? (
+            <p className="mt-4 text-xs text-zinc-500">
+              除錯代碼（digest）：{" "}
+              <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">
+                {error.digest}
+              </code>
+            </p>
+          ) : null}
           <pre className="mt-6 max-h-48 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 p-4 text-left text-xs leading-relaxed whitespace-pre-wrap text-amber-200/90">
-            {error.message}
+            {envIssue || process.env.NODE_ENV === "development"
+              ? error.message
+              : "正式環境已隱藏詳細錯誤訊息。"}
           </pre>
           <button
             type="button"

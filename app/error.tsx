@@ -29,8 +29,16 @@ export default function AppError({
           ? "請至 Zeabur Variables 或本機 .env 補齊必要項目後重新整理。"
           : "請稍後再試，或返回上一頁。"}
       </p>
+      {error.digest ? (
+        <p className="text-xs text-muted-foreground">
+          除錯代碼（digest，可對照主機日誌）：{" "}
+          <code className="rounded bg-muted px-1 py-0.5">{error.digest}</code>
+        </p>
+      ) : null}
       <pre className="max-h-40 w-full overflow-auto rounded-md border bg-muted/50 p-3 text-left text-xs whitespace-pre-wrap">
-        {error.message}
+        {env || process.env.NODE_ENV === "development"
+          ? error.message
+          : "正式環境已隱藏詳細錯誤訊息。"}
       </pre>
       <button
         type="button"
