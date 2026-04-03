@@ -28,6 +28,13 @@ export async function POST(request: Request) {
     losslessOptimizeRaw === "1" ||
     losslessOptimizeRaw === "true" ||
     losslessOptimizeRaw === "on";
+  const normalizeRatioRaw = String(form.get("normalize1280x850") ?? "")
+    .trim()
+    .toLowerCase();
+  const enableNormalizeRatio =
+    normalizeRatioRaw === "1" ||
+    normalizeRatioRaw === "true" ||
+    normalizeRatioRaw === "on";
   const file = form.get("file");
   if (!(file instanceof File) || file.size <= 0) {
     return NextResponse.json({ error: "請選擇檔案" }, { status: 400 });
@@ -40,7 +47,10 @@ export async function POST(request: Request) {
         : await createImageAssetFromFile(
             file,
             { userId: adminUserId },
-            { enableLosslessOptimizeWhenOversize: enableLosslessOptimize },
+            {
+              enableLosslessOptimizeWhenOversize: enableLosslessOptimize,
+              normalizeToCardRatio1280x850: enableNormalizeRatio,
+            },
           );
 
     return NextResponse.json({

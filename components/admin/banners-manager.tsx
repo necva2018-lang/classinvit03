@@ -86,6 +86,7 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [losslessOptimizeOnOversize, setLosslessOptimizeOnOversize] =
     useState(true);
+  const [normalizeRatio1280x850, setNormalizeRatio1280x850] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
@@ -140,6 +141,9 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
       fd.append("file", f);
       if (losslessOptimizeOnOversize) {
         fd.append("losslessOptimize", "1");
+      }
+      if (normalizeRatio1280x850) {
+        fd.append("normalize1280x850", "1");
       }
       const res = await fetch("/api/admin/upload-banner", {
         method: "POST",
@@ -381,6 +385,15 @@ export function BannersManager({ initialRows }: { initialRows: AdminBannerRow[] 
                     className="size-4 rounded border-input"
                   />
                   超過 5MB 時，嘗試無損壓縮後再上傳
+                </label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={normalizeRatio1280x850}
+                    onChange={(e) => setNormalizeRatio1280x850(e.target.checked)}
+                    className="size-4 rounded border-input"
+                  />
+                  上傳時轉為 1280×850 比例（置中裁切）
                 </label>
                 {uploadError ? (
                   <p className="text-sm text-destructive">{uploadError}</p>

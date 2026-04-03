@@ -112,6 +112,7 @@ export function MediaLibraryManager({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [losslessOptimizeOnOversize, setLosslessOptimizeOnOversize] =
     useState(true);
+  const [normalizeRatio1280x850, setNormalizeRatio1280x850] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -206,6 +207,9 @@ export function MediaLibraryManager({
       fd.set("file", file);
       if (kindValue === "image" && losslessOptimizeOnOversize) {
         fd.set("losslessOptimize", "1");
+      }
+      if (kindValue === "image" && normalizeRatio1280x850) {
+        fd.set("normalize1280x850", "1");
       }
       const res = await fetch("/api/admin/media/upload", {
         method: "POST",
@@ -379,6 +383,15 @@ export function MediaLibraryManager({
                 className="size-4 rounded border-input"
               />
               超過 5MB 時，嘗試無損壓縮後再上傳
+            </label>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={normalizeRatio1280x850}
+                onChange={(e) => setNormalizeRatio1280x850(e.target.checked)}
+                className="size-4 rounded border-input"
+              />
+              上傳時轉為 1280×850 比例（置中裁切）
             </label>
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">

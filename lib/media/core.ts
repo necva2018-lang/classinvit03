@@ -9,6 +9,11 @@ type UploadBy = {
   userId?: string | null;
 };
 
+type CreateImageAssetOptions = {
+  enableLosslessOptimizeWhenOversize?: boolean;
+  normalizeToCardRatio1280x850?: boolean;
+};
+
 function hashBytes(buf: Buffer): string {
   return crypto.createHash("sha256").update(buf).digest("hex");
 }
@@ -62,10 +67,20 @@ async function optimizeImageLosslessToLimit(
   return null;
 }
 
+async function normalizeImageToCardRatio1280x850(
+  input: Buffer,
+): Promise<{ bytes: Buffer; mimeType: string }> {
+  const bytes = await sharp(input, { animated: true })
+    .resize(1280, 850, { fit: "cover", position: "centre" })
+    .webp({ quality: 92 })
+    .toBuffer();
+  return { bytes, mimeType: "image/webp" };
+}
+
 export async function createImageAssetFromFile(
   file: File,
   by?: UploadBy,
-  options?: { enableLosslessOptimizeWhenOversize?: boolean },
+  options?: CreateImageAssetOptions,
 ) {
   const mime = file.type || "application/octet-stream";
   if (!ALLOWED_IMAGE_MIME.has(mime)) {
@@ -74,6 +89,11 @@ export async function createImageAssetFromFile(
   const rawBytes = Buffer.from(await file.arrayBuffer());
   let bytes = rawBytes;
   let storedMimeType = mime;
+  if (options?.normalizeToCardRatio1280x850) {
+    const normalized = await normalizeImageToCardRatio1280x850(rawBytes);
+    bytes = Buffer.from(normalized.bytes);
+    storedMimeType = normalized.mimeType;
+  }
   if (bytes.length > MEDIA_LIMITS.imageMaxBytes) {
     const enableLossless = options?.enableLosslessOptimizeWhenOversize ?? false;
     if (!enableLossless) {
